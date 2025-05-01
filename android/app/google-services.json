@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "489570983442",
+    "project_id": "apartemapplication",
+    "storage_bucket": "apartemapplication.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489570983442:android:d034444024d11c16ff02cb",
+        "android_client_info": {
+          "package_name": "com.example.apartemapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDForrOrAO5R-UttkbAF2_XdLLCjcjfxbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489570983442:android:5890e185eacee58aff02cb",
+        "android_client_info": {
+          "package_name": "com.example.bogsandmil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDForrOrAO5R-UttkbAF2_XdLLCjcjfxbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489570983442:android:ac242720205fd6d0ff02cb",
+        "android_client_info": {
+          "package_name": "com.example.bogsandmila"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDForrOrAO5R-UttkbAF2_XdLLCjcjfxbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
