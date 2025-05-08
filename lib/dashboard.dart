@@ -175,8 +175,8 @@ class _DashboardPage extends State<DashboardPage> {
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
                               if (widget.type == 'Admin')
-                                _cardContainer(
-                                    6, "Manage User", "assets/manageuser.png"),
+                                _cardContainer(6, "Account Management ",
+                                    "assets/manageuser.png"),
                               _cardContainer(
                                   7, "Building", "assets/house2.png"),
                               _cardContainer(
@@ -239,7 +239,9 @@ class _DashboardPage extends State<DashboardPage> {
             if (id == 1) {
               return AnnouncePage(uid: widget.uid, type: widget.type);
             } else if (id == 2) {
-              return MessagePage(uid: widget.uid, type: widget.type);
+              return messagePage(
+                userid: widget.uid,
+              );
             } else if (id == 3) {
               return RequestPage(uid: widget.uid, type: widget.type);
             } else if (id == 4) {

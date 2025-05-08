@@ -1,246 +1,398 @@
-import 'dart:math';
-import 'package:bogsandmila/logo.dart';
-import 'package:chat_bubbles/bubbles/bubble_special_three.dart';
-import 'package:chat_bubbles/chat_bubbles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class MessageView extends StatefulWidget {
-  final String id; // Explicitly define as String
-  final String firstname;
-  final String lastname;
-  final String uid;
-  final String type;
+class messagePage extends StatefulWidget {
+  final String userid;
 
-  const MessageView({
-    Key? key,
-    required this.id,
-    required this.firstname,
-    required this.lastname,
-    required this.uid,
-    required this.type,
-  }) : super(key: key);
+  const messagePage({Key? key, required this.userid}) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
-  _MessageView createState() => _MessageView();
+  _messagePageState createState() => _messagePageState();
 }
 
-class _MessageView extends State<MessageView> {
-  final messagesController = TextEditingController();
+class _messagePageState extends State<messagePage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final sortid = [widget.uid, widget.id];
-    sortid.sort();
-    String chatroomID = sortid.join("_");
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Column(
-          children: [
-            LogoPage(uid: widget.uid, type: widget.type),
-            const SizedBox(height: 50),
-            Container(
-              padding: EdgeInsets.all(20),
-              alignment: Alignment.topLeft,
-              child: Text(
-                'Receiver: ${widget.firstname} ${widget.lastname}',
-                style: TextStyle(fontSize: 20),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Messages'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search tenants...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
               ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
             ),
-            Container(
-              height: 520,
-              child: StreamBuilder(
-                stream: (() {
-                  // Conditional check to determine if orderBy should be applied
-                  if (chatroomID != null && chatroomID.isNotEmpty) {
-                    return FirebaseFirestore.instance
-                        .collection('messages')
-                        .orderBy("timestamp")
-                        .snapshots();
-                  } else {
-                    return FirebaseFirestore.instance
-                        .collection('messages')
-                        .snapshots();
-                  }
-                })(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return ListView.builder(
-                      itemCount: snapshot.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        final timestamp =
-                            snapshot.data!.docs[index]['timestamp'];
-                        DateTime? messageDate;
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('tenant').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-                        // Check if the timestamp is of type Timestamp and convert it to DateTime
-                        if (timestamp is Timestamp) {
-                          messageDate = timestamp.toDate();
-                        }
-                        String formattedDate = '';
-                        if (messageDate != null) {
-                          formattedDate =
-                              DateFormat('MMM d, y h:mm a').format(messageDate);
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Filter tenants based on search query
+                final filteredTenants = snapshot.data!.docs.where((tenant) {
+                  final tenantData = tenant.data() as Map<String, dynamic>;
+                  final fullName =
+                      '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}'
+                          .toLowerCase();
+                  return fullName.contains(_searchQuery);
+                }).toList();
+
+                return ListView.builder(
+                  itemCount: filteredTenants.length,
+                  itemBuilder: (context, index) {
+                    final tenant = filteredTenants[index];
+                    final tenantData = tenant.data() as Map<String, dynamic>;
+
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: _firestore
+                          .collection('messages')
+                          .where('participants', arrayContains: tenant.id)
+                          .orderBy('timestamp', descending: true)
+                          .limit(1)
+                          .snapshots(),
+                      builder: (context, messageSnapshot) {
+                        String lastMessage = '';
+                        bool hasUnread = false;
+                        DateTime? lastMessageTime;
+
+                        if (messageSnapshot.hasData &&
+                            messageSnapshot.data!.docs.isNotEmpty) {
+                          final lastMessageData =
+                              messageSnapshot.data!.docs.first.data()
+                                  as Map<String, dynamic>;
+                          lastMessage = lastMessageData['message'] ?? '';
+                          hasUnread = !(lastMessageData['isRead'] ?? true) &&
+                              (lastMessageData['receiverId'] == widget.userid ||
+                                  lastMessageData['senderId'] == widget.userid);
+                          lastMessageTime =
+                              lastMessageData['timestamp']?.toDate();
                         }
 
-                        if (chatroomID == snapshot.data!.docs[index]['code']) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (messageDate != null)
-                                DateChip(
-                                  date: messageDate,
-                                  label: formattedDate,
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.blue.shade100,
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.blue.shade900,
+                              ),
+                            ),
+                            title: Text(
+                              '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  lastMessage.isEmpty
+                                      ? 'No messages yet'
+                                      : lastMessage,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              snapshot.data!.docs[index]['sender'].toString() ==
-                                      widget.uid.toString()
-                                  ? Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        BubbleSpecialThree(
-                                          text: snapshot.data!.docs[index]
-                                              ['text'],
-                                          color: Color(0xdd607DE1),
-                                          tail: false,
-                                          textStyle: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16),
-                                        ),
-                                        Container(
-                                          padding: EdgeInsets.only(right: 10),
-                                          child: FaIcon(
-                                              FontAwesomeIcons.userCircle),
-                                        )
-                                      ],
-                                    )
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.only(left: 10),
-                                          child: FaIcon(
-                                              FontAwesomeIcons.userCircle),
-                                        ),
-                                        BubbleSpecialThree(
-                                          text: snapshot.data!.docs[index]
-                                              ['text'],
-                                          color: Colors.grey,
-                                          tail: false,
-                                          isSender: false,
-                                          textStyle: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16),
-                                        ),
-                                      ],
-                                    )
-                            ],
-                          );
-                        } else {
-                          return SizedBox
-                              .shrink(); // Empty widget if chatroomID doesn't match
-                        }
+                                if (lastMessageTime != null)
+                                  Text(
+                                    _formatTimestamp(lastMessageTime),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                              ],
+                            ),
+                            trailing: hasUnread
+                                ? Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  )
+                                : null,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    adminId: widget.userid,
+                                    tenantId: tenant.id,
+                                    tenantName:
+                                        '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
+                                    buildingnumber:
+                                        tenantData['buildingnumber'],
+                                    unitnumber: tenantData['unitnumber'],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
                       },
                     );
-                  } else {
-                    return Text('NO MESSAGES');
-                  }
-                },
-              ),
+                  },
+                );
+              },
             ),
-            Container(
-              padding: EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10)),
-                      child: TextField(
-                        controller: messagesController,
-                        decoration: InputDecoration(
-                            labelText: 'Enter Message',
-                            border: InputBorder.none),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Color(0xdd607DE1),
-                        borderRadius: BorderRadius.circular(50)),
-                    child: TextButton(
-                      onPressed: () async {
-                        final sortid = [widget.uid, widget.id];
-                        sortid.sort();
-                        String chatroomID = sortid.join("_");
-
-                        if (messagesController != null) {
-                          final refcolmessages =
-                              FirebaseFirestore.instance.collection('messages');
-
-                          refcolmessages.add({
-                            'sender': widget.uid,
-                            'receiver': widget.id,
-                            'text': messagesController.text,
-                            'code': chatroomID,
-                            'timestamp':
-                                FieldValue.serverTimestamp(), // Add timestamp
-                          });
-                        }
-
-                        messagesController.clear();
-                      },
-                      child: Icon(
-                        Icons.send,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    if (now.difference(timestamp).inDays == 0) {
+      return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+    }
+    return '${timestamp.day}/${timestamp.month} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+  }
 }
 
-class DateChip extends StatelessWidget {
-  final DateTime date; // You can use this if needed
-  final String label; // Define the label parameter
+class ChatScreen extends StatefulWidget {
+  final String adminId;
+  final String tenantId;
+  final String tenantName;
+  final String buildingnumber;
+  final String unitnumber;
 
-  const DateChip({
-    Key? key,
-    required this.date, // Include date in constructor if needed
-    required this.label, // Include label in constructor
-  }) : super(key: key);
+  const ChatScreen(
+      {Key? key,
+      required this.adminId,
+      required this.tenantId,
+      required this.tenantName,
+      required this.buildingnumber,
+      required this.unitnumber})
+      : super(key: key);
+
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final _messageController = TextEditingController();
+  final _searchController = TextEditingController();
+  final _firestore = FirebaseFirestore.instance;
+  final _scrollController = ScrollController();
+
+  String adminId = "userAdmin";
+  String _searchQuery = '';
+  bool _isSearching = false;
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    try {
+      await _firestore.collection('messages').add({
+        'senderId': adminId,
+        'receiverId': widget.tenantId,
+        'message': _messageController.text.trim(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'senderRole': 'admin',
+        'participants': [adminId, widget.tenantId],
+      });
+
+      // Create notification for tenant
+      await _firestore.collection('notifications').add({
+        'userId': widget.tenantId,
+        'title': 'New Message from Admin',
+        'message': _messageController.text.trim(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'type': 'message',
+      });
+
+      _messageController.clear();
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending message: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      borderRadius: BorderRadius.circular(8.0), // Optional: rounded corners
-      child: Container(
-        padding:
-            EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0), // Padding
-        child: Text(
-          label, // Display the label
-          style: TextStyle(
-              color: Colors.grey.shade600, fontSize: 12), // Text color
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search messages...',
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              )
+            : ListTile(
+                title: Text(widget.tenantName),
+                subtitle: Text(
+                    'Bldg: ${widget.buildingnumber} unit:${widget.unitnumber}'),
+              ),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchQuery = '';
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('messages')
+                  .where('participants', arrayContains: widget.tenantId)
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final messages = snapshot.data!.docs.where((doc) {
+                  final message = doc.data() as Map<String, dynamic>;
+                  return _searchQuery.isEmpty ||
+                      message['message']
+                          .toString()
+                          .toLowerCase()
+                          .contains(_searchQuery);
+                }).toList();
+
+                return ListView.builder(
+                  reverse: true,
+                  controller: _scrollController,
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message =
+                        messages[index].data() as Map<String, dynamic>;
+                    final isMe = message['senderId'] == adminId;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: isMe
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.7,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isMe ? Colors.blue : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              message['message'],
+                              style: TextStyle(
+                                color: isMe ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _sendMessage,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

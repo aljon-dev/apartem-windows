@@ -5,7 +5,6 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _HomePage createState() => _HomePage();
 }
 
@@ -15,12 +14,10 @@ class _HomePage extends State<HomePage> {
     double total = 0.0;
 
     for (var record in buildingRecords) {
-      // Make sure to safely handle potential null or non-numeric values
       var availableValue = record['available'];
       if (availableValue is num) {
         total += availableValue.toDouble();
       } else if (availableValue is String) {
-        // Optionally handle string representations of numbers
         total += double.tryParse(availableValue) ?? 0.0;
       }
     }
@@ -37,16 +34,14 @@ class _HomePage extends State<HomePage> {
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
 
-      print(
-          'Fetched records: $buildingRecords'); // Add this line to see the fetched data
+      print('Fetched records: $buildingRecords');
 
       setState(() {
         totalAmount = computeTotalBuilding(buildingRecords);
-        print('Computed Total: $totalAmount'); // Print the computed total
+        print('Computed Total: $totalAmount');
       });
     } catch (e) {
-      print(
-          'Error fetching or computing total: $e'); // Catch and print any errors
+      print('Error fetching or computing total: $e');
     }
   }
 
@@ -65,7 +60,7 @@ class _HomePage extends State<HomePage> {
             children: [
               Container(
                 width: double.infinity,
-                height: 900, // Adjust the height
+                height: 900,
                 decoration: const BoxDecoration(
                   image: DecorationImage(
                     image: AssetImage('assets/bghomepage.png'),
