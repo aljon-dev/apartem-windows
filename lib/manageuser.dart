@@ -3,196 +3,200 @@ import 'package:bogsandmila/services.dart';
 import 'package:flutter/material.dart';
 
 class ManageUserPage extends StatefulWidget {
-  // ignore: prefer_typing_uninitialized_variables
-  final uid;
-  // ignore: prefer_typing_uninitialized_variables
-  final type;
+  final String uid;
+  final String type;
+
   const ManageUserPage({super.key, required this.uid, required this.type});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ManageUserPage createState() => _ManageUserPage();
+  _ManageUserPageState createState() => _ManageUserPageState();
 }
 
-class _ManageUserPage extends State<ManageUserPage> {
-  late TextEditingController firstname = TextEditingController();
-  late TextEditingController middlename = TextEditingController();
-  late TextEditingController lastname = TextEditingController();
-  late TextEditingController contactnumber = TextEditingController();
-  late TextEditingController buildingnumber = TextEditingController();
-  late TextEditingController unitnumber = TextEditingController();
-  late TextEditingController username = TextEditingController();
-  late TextEditingController password = TextEditingController();
+class _ManageUserPageState extends State<ManageUserPage> {
+  final _formKey = GlobalKey<FormState>();
+  final firstname = TextEditingController();
+  final middlename = TextEditingController();
+  final lastname = TextEditingController();
+  final contactnumber = TextEditingController();
+  final buildingnumber = TextEditingController();
+  final unitnumber = TextEditingController();
+  final username = TextEditingController();
+  final password = TextEditingController();
+
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    firstname.dispose();
+    middlename.dispose();
+    lastname.dispose();
+    contactnumber.dispose();
+    buildingnumber.dispose();
+    unitnumber.dispose();
+    username.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  void _clearFields() {
+    for (final controller in [
+      firstname,
+      middlename,
+      lastname,
+      contactnumber,
+      buildingnumber,
+      unitnumber,
+      username,
+      password,
+    ]) {
+      controller.clear();
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState?.validate() != true) return;
+
+    setState(() => isLoading = true);
+
+    await Services().CreateManageUser(
+      firstname.text,
+      middlename.text,
+      lastname.text,
+      contactnumber.text,
+      buildingnumber.text,
+      unitnumber.text,
+      username.text,
+      password.text,
+    );
+
+    setState(() => isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Create account successfully!'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    _clearFields();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
+      body: Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LogoPage(uid: widget.uid, type: widget.type),
-                  const SizedBox(height: 50),
-                  Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Manage User',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 32),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Tenant Registration',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 24),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                      width: 700,
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 700),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Back button added here
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.black),
+                          label: const Text(
+                            'Back',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      LogoPage(uid: widget.uid, type: widget.type),
+                      const SizedBox(height: 30),
+                      const Text(
+                        'Tenant Registration',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 24),
+                      ),
+                      const SizedBox(height: 30),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            _rowInputs([
                               _formContainer("First Name:", firstname),
                               _formContainer("M.I:", middlename),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+                            ]),
+                            const SizedBox(height: 20),
+                            _rowInputs([
                               _formContainer("Last Name:", lastname),
                               _formContainer("Contact Number:", contactnumber),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+                            ]),
+                            const SizedBox(height: 20),
+                            _rowInputs([
                               _formContainer(
                                   "Building Number:", buildingnumber),
                               _formContainer("Unit Number:", unitnumber),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
+                            ]),
+                            const SizedBox(height: 20),
+                            _rowInputs([
                               _formContainer("Username:", username),
-                              _formContainer("Password:", password),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          SizedBox(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Container(
-                                  margin: const EdgeInsets.only(right: 22),
-                                  width: 200,
-                                  height: 40,
-                                  padding: const EdgeInsets.all(0),
-                                  decoration: BoxDecoration(
-                                    color:
+                              _formContainer("Password:", password,
+                                  isPassword: true),
+                            ]),
+                            const SizedBox(height: 30),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: SizedBox(
+                                width: 200,
+                                height: 40,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
                                         const Color.fromARGB(228, 12, 12, 12),
-                                    borderRadius: BorderRadius.circular(5),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(
-                                            0x661E1E1E), // Shadow color (#1E1E1E66)
-                                        offset: Offset(0,
-                                            2), // Horizontal and vertical offsets
-                                        blurRadius:
-                                            10.0, // Softness of the shadow
-                                        spreadRadius:
-                                            1.0, // Spread of the shadow
-                                      ),
-                                    ],
-                                  ),
-                                  child: TextButton(
-                                    onPressed: () {
-                                      Services().CreateManageUser(
-                                          firstname.text,
-                                          middlename.text,
-                                          lastname.text,
-                                          contactnumber.text,
-                                          buildingnumber.text,
-                                          unitnumber.text,
-                                          username.text,
-                                          password.text);
-
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Create account successfully!'),
-                                          backgroundColor: Colors
-                                              .green, // Optional: Set a background color
-                                          duration: Duration(
-                                              seconds:
-                                                  2), // Optional: Set duration for the snackbar
-                                        ),
-                                      );
-
-                                      firstname.clear();
-                                      middlename.clear();
-                                      lastname.clear();
-                                      contactnumber.clear();
-                                      buildingnumber.clear();
-                                      unitnumber.clear();
-                                      username.clear();
-                                      password.clear();
-                                    },
-                                    child: const Text(
-                                      'Register Account',
-                                      style: TextStyle(color: Colors.white),
+                                    shadowColor: const Color(0x661E1E1E),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5),
                                     ),
                                   ),
-                                )
-                              ],
+                                  onPressed: isLoading ? null : _submitForm,
+                                  child: isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Register Account',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                ),
+                              ),
                             ),
-                          )
-                        ],
-                      )),
-                ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              color: const Color.fromARGB(255, 30, 30, 30),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: const Center(
-                child: Text(
-                  'Copyright © Bogs and Mila Apartment. All Rights Reserved.',
-                  style: TextStyle(color: Colors.white),
-                ),
+          Container(
+            color: const Color.fromARGB(255, 30, 30, 30),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: const Center(
+              child: Text(
+                'Copyright © Bogs and Mila Apartment. All Rights Reserved.',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ),
@@ -201,33 +205,40 @@ class _ManageUserPage extends State<ManageUserPage> {
     );
   }
 
-  _formContainer(String label, TextEditingController controller) {
+  Widget _formContainer(String label, TextEditingController controller,
+      {bool isPassword = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-        ),
-        const SizedBox(
-          height: 5,
-        ),
-        Container(
-          padding: const EdgeInsets.only(left: 10),
+        Text(label,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+        const SizedBox(height: 5),
+        SizedBox(
           width: 300,
           height: 45,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(width: 1, color: const Color(0xddDADADA))),
-          child: TextField(
-            style: const TextStyle(
-              fontSize: 13.0,
-            ),
+          child: TextFormField(
             controller: controller,
-            decoration: const InputDecoration(border: InputBorder.none),
+            obscureText: isPassword,
+            validator: (value) =>
+                value == null || value.trim().isEmpty ? 'Required' : null,
+            style: const TextStyle(fontSize: 13.0),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.only(left: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xddDADADA)),
+              ),
+            ),
           ),
-        )
+        ),
       ],
+    );
+  }
+
+  Widget _rowInputs(List<Widget> inputs) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: inputs,
     );
   }
 }

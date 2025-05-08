@@ -41,6 +41,27 @@ class _AdminAccountPage extends State<AdminAccountPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Back button added here
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 20),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        label: const Text(
+                          'Back',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   LogoPage(uid: widget.uid, type: widget.type),
                   const SizedBox(height: 50),
                   Container(

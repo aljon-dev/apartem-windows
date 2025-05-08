@@ -57,13 +57,41 @@ class _DashboardPage extends State<DashboardPage> {
                 children: [
                   GestureDetector(
                     child: Container(
-                      padding: EdgeInsets.all(10),
-                      alignment: Alignment.bottomLeft,
-                      child: FaIcon(FontAwesomeIcons.signOut),
-                    ),
+                        padding: EdgeInsets.all(10),
+                        alignment: Alignment.bottomRight,
+                        child: Icon(Icons.logout)),
                     onTap: () {
-                      Navigator.pushReplacement(context,
-                          MaterialPageRoute(builder: (context) => LoginPage()));
+                      showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Center(
+                                child: Text('Confirmation '),
+                              ),
+                              content:
+                                  const Text('Are You Sure Want to log out '),
+                              actions: [
+                                ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const LoginPage()));
+                                    },
+                                    child: Text('Confirm')),
+                                ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  LoginPage()));
+                                    },
+                                    child: Text('Cancel '))
+                              ],
+                            );
+                          });
                     },
                   ),
                   LogoPage(uid: widget.uid, type: widget.type),

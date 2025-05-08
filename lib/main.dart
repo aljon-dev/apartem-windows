@@ -3,17 +3,19 @@ import 'package:bogsandmila/login.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1300, 850),
+  final screen = await screenRetriever.getPrimaryDisplay();
+  final screenSize = screen.size;
+
+  WindowOptions windowOptions = WindowOptions(
+    size: Size(screenSize.width.toDouble(), screenSize.height.toDouble()),
     center: true,
-    minimumSize: Size(1300, 900),
-    maximumSize: Size(1300, 900),
     backgroundColor: Colors.transparent,
     titleBarStyle: TitleBarStyle.normal,
   );
@@ -21,7 +23,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
-    await windowManager.setResizable(false); // Disable resizing
+    await windowManager.setResizable(true); // Disable resizing
   });
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.windows);

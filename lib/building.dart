@@ -64,6 +64,26 @@ class _BuildingPage extends State<BuildingPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Padding(
+                        padding: const EdgeInsets.only(left: 20, top: 20),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.black),
+                            label: const Text(
+                              'Back',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        )),
                     LogoPage(uid: widget.uid, type: widget.type),
                     const SizedBox(height: 20),
                     Expanded(
