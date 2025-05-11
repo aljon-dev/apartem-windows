@@ -1,6 +1,7 @@
 import 'package:bogsandmila/dashboard.dart';
 import 'package:bogsandmila/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,6 +12,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPage extends State<LoginPage> {
+  final _fireStore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String selectedValue = 'Super Admin';
@@ -57,49 +60,16 @@ class _LoginPage extends State<LoginPage> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Role Dropdown
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: const Text('Login as:',
+                        child: const Text('Email | Username',
                             style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: selectedValue,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: const Color(0xffF4F4F4),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(5),
-                              borderSide: BorderSide.none),
-                        ),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            selectedValue = newValue!;
-                          });
-                        },
-                        items: dropdownItems
-                            .map((value) => DropdownMenuItem(
-                                value: value, child: Text(value)))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 20),
 
-                      // Email or Username
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          selectedValue == 'Super Admin' ? 'Email' : 'Username',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                       TextField(
                         controller: emailController,
                         decoration: InputDecoration(
-                          labelText: selectedValue == 'Super Admin'
-                              ? 'Email'
-                              : 'Username',
+                          labelText: 'Email or Username',
                           filled: true,
                           fillColor: const Color(0xffF4F4F4),
                           border: OutlineInputBorder(
@@ -190,56 +160,37 @@ class _LoginPage extends State<LoginPage> {
     );
   }
 
-  void _handleLogin() {
-    setState(() {
-      invalidEmail = "";
-      invalidPassword = "";
-    });
+  Future<void> _handleLogin() async {
+    final QuerySnapshot snapshot = await _fireStore
+        .collection('Super-Admin')
+        .where('email', isEqualTo: emailController.text)
+        .where('password', isEqualTo: passwordController.text)
+        .get();
 
-    if (selectedValue == "Admin") {
-      FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: emailController.text)
-          .where('password', isEqualTo: passwordController.text)
-          .get()
-          .then((querySnapshot) {
-        if (querySnapshot.docs.isNotEmpty) {
-          final uid = querySnapshot.docs.first.id;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DashboardPage(uid: uid, type: selectedValue)),
-          );
-        } else {
-          setState(() {
-            invalidEmail = "Invalid Username";
-            invalidPassword = "Invalid Password";
-          });
-        }
-      });
+    final QuerySnapshot usersnapshot = await _fireStore
+        .collection('users')
+        .where('username', isEqualTo: emailController.text)
+        .where('password', isEqualTo: passwordController.text)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final userData = snapshot.docs.first;
+
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  DashboardPage(uid: userData.id, type: 'Super Admin')));
+    } else if (usersnapshot.docs.isNotEmpty) {
+      final userData = usersnapshot.docs.first;
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  DashboardPage(uid: userData.id, type: 'Admin')));
     } else {
-      Services()
-          .Signin(emailController.text, passwordController.text)
-          .then((userCredential) {
-        if (userCredential != null && userCredential.user != null) {
-          final uid = userCredential.user!.uid;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DashboardPage(uid: uid, type: selectedValue)),
-          );
-        } else {
-          setState(() {
-            invalidEmail = "Invalid Username";
-            invalidPassword = "Invalid Password";
-          });
-        }
-      }).catchError((_) {
-        setState(() {
-          invalidEmail = "Invalid Username";
-          invalidPassword = "Invalid Password";
-        });
-      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to login')));
     }
   }
 }

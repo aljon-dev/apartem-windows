@@ -92,9 +92,7 @@ class _RequestPage extends State<RequestPage> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (context) =>
-                                              MaintenceRequestPage(
-                                                  uid: widget.uid,
-                                                  type: widget.type)));
+                                              maintenanceRequestPage()));
                                 },
                               ),
                               const SizedBox(

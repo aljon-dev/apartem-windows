@@ -79,15 +79,25 @@ class _DashboardPage extends State<DashboardPage> {
                                               builder: (context) =>
                                                   const LoginPage()));
                                     },
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        )),
                                     child: Text('Confirm')),
                                 ElevatedButton(
                                     onPressed: () {
-                                      Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  LoginPage()));
+                                      Navigator.pop(context);
                                     },
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        )),
                                     child: Text('Cancel '))
                               ],
                             );
@@ -198,7 +208,7 @@ class _DashboardPage extends State<DashboardPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               if (widget.type == 'Admin')
-                                _cardContainer(4, "Sales Record",
+                                _cardContainer(4, "Rental Record",
                                     "assets/salesrecord.png"),
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
@@ -273,7 +283,7 @@ class _DashboardPage extends State<DashboardPage> {
             } else if (id == 3) {
               return RequestPage(uid: widget.uid, type: widget.type);
             } else if (id == 4) {
-              return SalesRecordPage(uid: widget.uid, type: widget.type);
+              return SalesRecordPage();
             } else if (id == 5) {
               return VacancyPage(uid: widget.uid, type: widget.type);
             } else if (id == 6) {

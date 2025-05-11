@@ -1,256 +1,299 @@
-import 'package:bogsandmila/logo.dart';
-import 'package:bogsandmila/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
-class MaintenceRequestPage extends StatefulWidget {
-  // ignore: prefer_typing_uninitialized_variables
-  final uid;
-  // ignore: prefer_typing_uninitialized_variables
-  final type;
-  const MaintenceRequestPage(
-      {super.key, required this.uid, required this.type});
+class maintenanceRequest {
+  final String id;
+  final String message;
+  final String status;
+  final String tenant;
+  final String uid;
+  final String imageUrl;
+  final String building;
+  final String unit;
+  final DateTime timestamp; // Use DateTime for better handling
 
-  @override
-  // ignore: library_private_types_in_public_api
-  _MaintenceRequestPage createState() => _MaintenceRequestPage();
+  maintenanceRequest({
+    required this.id,
+    required this.message,
+    required this.status,
+    required this.tenant,
+    required this.uid,
+    required this.imageUrl,
+    required this.building,
+    required this.unit,
+    required this.timestamp,
+  });
+
+  // Factory constructor to create an instance from Firestore
+  factory maintenanceRequest.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> request = doc.data() as Map<String, dynamic>;
+
+    return maintenanceRequest(
+      id: doc.id,
+      message: request['message'] ?? '',
+      status: request['status'] ?? '',
+      tenant: request['tenant'] ?? '',
+      uid: request['uid'] ?? '',
+      imageUrl: request['image'] ?? '',
+      building: request['building'] ?? '',
+      unit: request['unit'] ?? '',
+      timestamp: (request['timestamp'] as Timestamp)
+          .toDate(), // Convert Firestore Timestamp to DateTime
+    );
+  }
+
+  // Convert instance to Firestore format
+  Map<String, dynamic> toFirestore() {
+    return {
+      'message': message,
+      'status': status,
+      'tenant': tenant,
+      'uid': uid,
+      'image': imageUrl,
+      'building': building,
+      'unit': unit,
+      'timestamp': Timestamp.fromDate(
+          timestamp), // Convert DateTime to Firestore Timestamp
+    };
+  }
 }
 
-class _MaintenceRequestPage extends State<MaintenceRequestPage> {
+class maintenanceRequestPage extends StatefulWidget {
+  const maintenanceRequestPage({super.key});
+
+  @override
+  _maintenanceRequestPageState createState() => _maintenanceRequestPageState();
+}
+
+class _maintenanceRequestPageState extends State<maintenanceRequestPage> {
+  final _firestore = FirebaseFirestore.instance;
+
+  Stream<List<maintenanceRequest>> _getRequestMaintenance() {
+    return _firestore
+        .collection('maintenance_request')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => maintenanceRequest.fromFirestore(doc))
+          .toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        appBar: AppBar(),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
                 children: [
-                  LogoPage(uid: widget.uid, type: widget.type),
-                  const SizedBox(height: 50),
-                  Container(
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image(
-                            image: AssetImage('assets/maintenancerequest.png'),
-                            fit: BoxFit.cover,
-                            width: 50,
-                          ),
-                          SizedBox(
-                            width: 20,
-                          ),
-                          Text(
-                            'Maintenance Request',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 23),
-                          ),
-                        ],
-                      )),
-                  const SizedBox(height: 50),
-                  Expanded(
-                      child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 50),
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('maintenance_request')
-                          .snapshots(),
+                  Icon(Icons.hardware_outlined),
+                  Text(
+                    'Maintenance Request',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  )
+                ],
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              Expanded(
+                  child: StreamBuilder<List<maintenanceRequest>>(
+                      stream: _getRequestMaintenance(),
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
                           return Center(
-                              child: Text('Error: ${snapshot.error}'));
+                              child: Text('Error: ${snapshot.hasError}'));
                         }
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+
+                        if (!snapshot.hasData) {
                           return const Center(
                               child: CircularProgressIndicator());
                         }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(child: Text('No data available'));
-                        }
-
-                        final List<DocumentSnapshot> data = snapshot.data!.docs;
+                        final maintenanceRequest = snapshot.data!;
 
                         return GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 20.0,
-                            mainAxisSpacing: 20.0,
-                          ),
-                          padding: const EdgeInsets.all(10),
-                          itemCount: data.length,
-                          itemBuilder: (context, index) {
-                            var doc = data[index];
-                            var docID = doc.id; // Accessing the document ID
-
-                            return Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: const Color(0xddF6F6F4),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Tenant:",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    doc['tenant'] ?? 'Unknown',
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  const Text(
-                                    "Message:",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    doc['message'] ?? 'No message',
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  const Text(
-                                    "Image:",
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Expanded(
-                                    child: Image.network(
-                                      doc['image'],
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2),
+                            itemCount: maintenanceRequest.length,
+                            itemBuilder: (context, index) {
+                              final request = maintenanceRequest[index];
+                              return Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        width: 110,
-                                        padding: const EdgeInsets.all(0),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xddF96262),
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                        ),
-                                        child: TextButton(
-                                            onPressed: () {
-                                              Services()
-                                                  .MaintenanceRequestAction(
-                                                      docID, 'declined');
-                                            },
-                                            child: const Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                FaIcon(
-                                                  FontAwesomeIcons
-                                                      // ignore: deprecated_member_use
-                                                      .solidTimesCircle,
-                                                  color: Colors.white,
-                                                  size: 20,
-                                                ),
-                                                SizedBox(
-                                                  width: 10,
-                                                ),
-                                                Text(
-                                                  'Decline',
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            )),
+                                      const Text('Tenant',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold)),
+                                      Text(request.tenant,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                          )),
+                                      const SizedBox(height: 20),
+                                      const Text('Message',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold)),
+                                      Text(request.message,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                          )),
+                                      const SizedBox(
+                                        height: 20,
                                       ),
-                                      Container(
-                                        width: 110,
-                                        padding: const EdgeInsets.all(0),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xdd00B723),
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                        ),
-                                        child: TextButton(
-                                            onPressed: () {
-                                              Services()
-                                                  .MaintenanceRequestAction(
-                                                      docID, 'approved');
-                                            },
-                                            child: const Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                FaIcon(
-                                                  FontAwesomeIcons
-                                                      // ignore: deprecated_member_use
-                                                      .solidCheckCircle,
-                                                  color: Colors.white,
-                                                  size: 20,
-                                                ),
-                                                SizedBox(
-                                                  width: 10,
-                                                ),
-                                                Text(
-                                                  'Accept',
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                              ],
-                                            )),
+                                      const Text('Building Number',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold)),
+                                      Text(request.building,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                          )),
+                                      const SizedBox(
+                                        height: 20,
                                       ),
+                                      const Text('Unit Number',
+                                          style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold)),
+                                      Text(request.unit,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                          )),
+                                      const SizedBox(
+                                        height: 20,
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Date Time',
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            DateFormat('yyyy-MM-dd HH:mm:ss')
+                                                .format(request.timestamp),
+                                            style:
+                                                const TextStyle(fontSize: 20),
+                                          ),
+                                          const SizedBox(height: 20),
+                                        ],
+                                      ),
+                                      Center(
+                                        child: request.imageUrl.isNotEmpty
+                                            ? Image.network(
+                                                request.imageUrl,
+                                                height: 150,
+                                                width: 200,
+                                              )
+                                            : const SizedBox(),
+                                      ),
+                                      const SizedBox(
+                                        height: 20,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              _firestore
+                                                  .collection(
+                                                      'maintenance_request')
+                                                  .doc(request.id)
+                                                  .update({
+                                                'status': 'approved',
+                                              });
+
+                                              _firestore
+                                                  .collection('notifications')
+                                                  .add({
+                                                'isRead': false,
+                                                'title': 'Maintenance Request',
+                                                'message':
+                                                    'Maintenance Request Approved',
+                                                'timestamp': FieldValue
+                                                    .serverTimestamp(),
+                                                'userId': request.uid,
+                                                'type': 'maintenance',
+                                              });
+
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Maintenance Request  Rejected')));
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            5))),
+                                            icon: const Icon(Icons.close),
+                                            label: const Text('Rejected'),
+                                          ),
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              _firestore
+                                                  .collection(
+                                                      'maintenance_request')
+                                                  .doc(request.id)
+                                                  .update({
+                                                'status': 'rejected',
+                                              });
+
+                                              _firestore
+                                                  .collection('notifications')
+                                                  .add({
+                                                'isRead': false,
+                                                'title': 'Maintenance Request',
+                                                'message':
+                                                    'Maintenance Request Rejected',
+                                                'timestamp': FieldValue
+                                                    .serverTimestamp(),
+                                                'userId': request.uid,
+                                                'type': 'maintenance',
+                                              });
+
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Maintenance Request Approved')));
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            5))),
+                                            icon: const Icon(Icons.check),
+                                            label: const Text('Accepted'),
+                                          )
+                                        ],
+                                      )
                                     ],
-                                  )
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  )),
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
+                                  ),
+                                ),
+                              );
+                            });
+                      }))
+            ],
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              color: const Color.fromARGB(255, 30, 30, 30),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: const Center(
-                child: Text(
-                  'Copyright © Bogs and Mila Apartment. All Rights Reserved.',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+        ));
   }
 }
