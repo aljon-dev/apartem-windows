@@ -171,6 +171,7 @@ class _buildingUnits extends State<buildingUnits> {
                             text: buildingData['unitNumber'].toString());
                     TextEditingController unitTypeController =
                         TextEditingController(text: buildingData['unitType']);
+                    String unitKey = buildingData.id;
 
                     return Card(
                       child: ListTile(
@@ -179,15 +180,16 @@ class _buildingUnits extends State<buildingUnits> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             TextFormField(
+                              keyboardType: TextInputType.number,
                               controller: unitNumberController,
                               decoration: const InputDecoration(
                                 labelText: 'Building Unit Number',
                                 border: OutlineInputBorder(),
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               value: unitTypeController.text.isNotEmpty
                                   ? unitTypeController.text
@@ -199,7 +201,6 @@ class _buildingUnits extends State<buildingUnits> {
                                 );
                               }).toList(),
                               onChanged: (String? newValue) {
-                                // No need for setState here as this is inside a dialog
                                 unitTypeController.text =
                                     newValue ?? unitTypeController.text;
                               },
@@ -212,29 +213,30 @@ class _buildingUnits extends State<buildingUnits> {
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.edit),
-                          onPressed: () {
-                            // Implementation for edit button
+                          onPressed: () async {
+                            List unitNumber = buildingData['unitNumber'];
+
+                            for (int i = 0; i < unitNumber.length; i++) {
+                              if (unitNumber[i] ==
+                                  int.parse(unitNumberController.text)) {
+                                _Snackbar('Unit Number Already Exists',
+                                    Colors.red, context);
+                                return;
+                              }
+                            }
                             _firestore
                                 .collection('UnitNumber')
                                 .doc(buildingData.id)
                                 .update({
-                              'unitNumber': unitNumberController.text,
+                              'unitNumber':
+                                  int.parse(unitNumberController.text),
                               'unitType': unitTypeController.text,
                             }).then((_) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Unit updated successfully')),
-                              );
+                              _Snackbar('Data Updated', Colors.green, context);
                             }).catchError((error) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content:
-                                        Text('Failed to update unit: $error')),
-                              );
+                              _Snackbar('Failed to update the data ',
+                                  Colors.red, context);
                             });
-
-                            // Optionally close the dialog after update
-                            // Navigator.pop(context);
                           },
                         ),
                       ),
