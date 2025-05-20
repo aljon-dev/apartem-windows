@@ -1,5 +1,6 @@
 import 'package:bogsandmila/logo.dart';
 import 'package:bogsandmila/tenant.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -16,25 +17,10 @@ class BuildingPage extends StatefulWidget {
 }
 
 class _BuildingPage extends State<BuildingPage> {
-  final List<Item> _items = List.generate(
-    5,
-    (index) => Item(
-      index + 1,
-      'Name $index',
-      index % 2 == 0 ? 'Active' : 'Inactive',
-    ),
-  );
-
-  final int _rowsPerPage = 10;
-  int _currentPage = 0;
+  final _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
-    int startIndex = _currentPage * _rowsPerPage;
-    int endIndex = (startIndex + _rowsPerPage < _items.length)
-        ? startIndex + _rowsPerPage
-        : _items.length;
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -72,8 +58,7 @@ class _BuildingPage extends State<BuildingPage> {
                             onPressed: () {
                               Navigator.of(context).pop();
                             },
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.black),
+                            icon: const Icon(Icons.arrow_back, color: Colors.black),
                             label: const Text(
                               'Back',
                               style: TextStyle(
@@ -87,116 +72,148 @@ class _BuildingPage extends State<BuildingPage> {
                     LogoPage(uid: widget.uid, type: widget.type),
                     const SizedBox(height: 20),
                     Expanded(
-                      child: SizedBox(
+                      child: Container(
+                        width: double.infinity,
                         child: Column(
+                          mainAxisSize: MainAxisSize.max,
                           children: [
-                            DataTable(
-                              columns: [
-                                DataColumn(
-                                  label: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 3,
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: const Text(
-                                      'Building',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Container(
-                                    width:
-                                        MediaQuery.of(context).size.width / 3,
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: const Text(
-                                      'Action',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              rows: List.generate(
-                                endIndex - startIndex,
-                                (index) {
-                                  final item = _items[startIndex + index];
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                              'Building ${item.id.toString()}',
-                                              style: const TextStyle(
-                                                  color: Colors.black)),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: GestureDetector(
-                                              child:
-                                                  FaIcon(FontAwesomeIcons.eye),
-                                              onTap: () {
-                                                Navigator.push(
-                                                  // ignore: use_build_context_synchronously
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        TenantPage(
-                                                            uid: widget.uid,
-                                                            type: widget.type,
-                                                            buildingnumber:
-                                                                item.id),
+                            Expanded(
+                              child: StreamBuilder<QuerySnapshot>(
+                                stream: _firestore.collection('building').snapshots(),
+                                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                  if (snapshot.hasError) {
+                                    return const Center(child: Text('Error'));
+                                  }
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return const Center(child: CircularProgressIndicator());
+                                  }
+                                  final data = snapshot.data;
+                                  if (data == null || data.docs.isEmpty) {
+                                    return const Center(child: Text('No data found'));
+                                  }
+
+                                  return LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      // Use the available width to make the table responsive
+                                      final availableWidth = constraints.maxWidth;
+
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: DataTable(
+                                            // Adjust column spacing based on available width
+                                            columnSpacing: availableWidth * 0.02, // 2% of available width
+                                            headingRowHeight: 56.0,
+                                            dataRowHeight: 52.0,
+                                            // Ensure table takes available width
+                                            horizontalMargin: 16.0,
+                                            columns: [
+                                              DataColumn(
+                                                label: Container(
+                                                  width: availableWidth * 0.4, // 40% of available width
+                                                  child: const Text(
+                                                    'Building',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
                                                   ),
-                                                );
-                                              },
-                                            )),
-                                      ),
-                                    ],
+                                                ),
+                                              ),
+                                              DataColumn(
+                                                label: Container(
+                                                  width: availableWidth * 0.3, // 30% of available width
+                                                  child: const Text(
+                                                    'Availability',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataColumn(
+                                                label: Container(
+                                                  width: availableWidth * 0.2, // 20% of available width
+                                                  child: const Text(
+                                                    'Action',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                            rows: data.docs.map((doc) {
+                                              final buildingName = doc['building'] ?? 'N/A';
+                                              final availability = doc['available'] ?? 'N/A';
+                                              final buildingId = doc.id;
+                                              return DataRow(
+                                                cells: [
+                                                  DataCell(
+                                                    Container(
+                                                      width: availableWidth * 0.4, // 40% of available width
+                                                      child: Text(
+                                                        'Building Number ${buildingName.toString()}',
+                                                        style: const TextStyle(color: Colors.black),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Container(
+                                                      width: availableWidth * 0.1, // 30% of available width
+                                                      child: Container(
+                                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: availability == 0 ? Colors.red[100] : Colors.green[100],
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        child: Text(
+                                                          availability == 0 ? 'Not Available' : 'Available',
+                                                          style: TextStyle(
+                                                            color: availability == 0 ? Colors.red[900] : Colors.green[900],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  DataCell(
+                                                    Container(
+                                                      width: availableWidth * 0, // 20% of available width
+                                                      child: IconButton(
+                                                        icon: const Icon(Icons.info, color: Colors.blue),
+                                                        tooltip: 'View Details',
+                                                        onPressed: () {
+                                                          Navigator.push(context, MaterialPageRoute(builder: (context) {
+                                                            return TenantPage(
+                                                              uid: widget.uid,
+                                                              type: widget.type,
+                                                              buildingnumber: null,
+                                                            );
+                                                          }));
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  (_items.length / _rowsPerPage).ceil(),
-                                  (index) => Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _currentPage = index;
-                                        });
-                                      },
-                                      // ignore: sort_child_properties_last
-                                      child: Text((index + 1).toString()),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: _currentPage == index
-                                            ? const Color(0xdd1E1E1E)
-                                            : Colors.white,
-                                        foregroundColor: _currentPage == index
-                                            ? Colors.white
-                                            : const Color(0xdd1E1E1E),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            )
                           ],
                         ),
                       ),
-                    )
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -221,12 +238,4 @@ class _BuildingPage extends State<BuildingPage> {
       ),
     );
   }
-}
-
-class Item {
-  Item(this.id, this.name, this.status);
-
-  final int id;
-  final String name;
-  final String status;
 }
