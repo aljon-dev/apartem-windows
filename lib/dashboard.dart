@@ -2,14 +2,17 @@ import 'package:bogsandmila/adminaccount.dart';
 import 'package:bogsandmila/announce.dart';
 import 'package:bogsandmila/archive.dart';
 import 'package:bogsandmila/building.dart';
+import 'package:bogsandmila/buildingUnits.dart';
 import 'package:bogsandmila/login.dart';
 import 'package:bogsandmila/logo.dart';
 import 'package:bogsandmila/manageuser.dart';
 import 'package:bogsandmila/message.dart';
+import 'package:bogsandmila/notifications.dart';
 import 'package:bogsandmila/request.dart';
 import 'package:bogsandmila/salesrecord.dart';
 import 'package:bogsandmila/tenant.dart';
 import 'package:bogsandmila/vacancy.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -27,6 +30,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPage extends State<DashboardPage> {
+  final _firestore = FirebaseFirestore.instance;
+
   void _launchURL() async {
     const url = 'https://chatgpt.com/c/66f678fd-2130-8012-937b-aac2917509e6';
     // ignore: deprecated_member_use
@@ -55,54 +60,108 @@ class _DashboardPage extends State<DashboardPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  GestureDetector(
-                    child: Container(
-                        padding: EdgeInsets.all(10),
-                        alignment: Alignment.bottomRight,
-                        child: Icon(Icons.logout)),
-                    onTap: () {
-                      showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Center(
-                                child: Text('Confirmation '),
-                              ),
-                              content:
-                                  const Text('Are You Sure Want to log out '),
-                              actions: [
-                                ElevatedButton(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        StreamBuilder<QuerySnapshot>(
+                            stream: _firestore
+                                .collection('notifications')
+                                .where('userId', isEqualTo: 'userAdmin')
+                                .snapshots(),
+                            builder: (context,
+                                AsyncSnapshot<QuerySnapshot> snapshot) {
+                              if (snapshot.hasError) {
+                                const Center(
+                                    child:
+                                        Text('Failed to load notifications'));
+                              }
+
+                              final notifData = snapshot.data!.docs;
+                              final unReadCount = notifData
+                                  .where((doc) => doc['isRead'] == false)
+                                  .length;
+                              return Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(unReadCount != 0
+                                        ? Icons.notification_important_outlined
+                                        : Icons.notifications),
                                     onPressed: () {
-                                      Navigator.pushReplacement(
+                                      Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                               builder: (context) =>
-                                                  const LoginPage()));
+                                                  notificationPage()));
                                     },
-                                    style: ElevatedButton.styleFrom(
+                                  ),
+                                  Text('Notifications'),
+                                ],
+                              );
+                            }),
+
+                        // Log out (Top Right)
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title:
+                                      const Center(child: Text('Confirmation')),
+                                  content: const Text(
+                                      'Are You Sure Want to log out?'),
+                                  actions: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const LoginPage()),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(10),
-                                        )),
-                                    child: Text('Confirm')),
-                                ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    style: ElevatedButton.styleFrom(
+                                        ),
+                                      ),
+                                      child: const Text('Confirm'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                      },
+                                      style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(10),
-                                        )),
-                                    child: Text('Cancel '))
-                              ],
+                                        ),
+                                      ),
+                                      child: const Text('Cancel'),
+                                    ),
+                                  ],
+                                );
+                              },
                             );
-                          });
-                    },
+                          },
+                          child: const Row(
+                            children: [
+                              Text('Log Out'),
+                              SizedBox(width: 5),
+                              Icon(Icons.logout),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   LogoPage(uid: widget.uid, type: widget.type),
                   const SizedBox(height: 30),
@@ -155,7 +214,13 @@ class _DashboardPage extends State<DashboardPage> {
                                   //   ),
                                   // ),
                                   GestureDetector(
-                                    onTap: _launchURL,
+                                    onTap: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  buildingUnits()));
+                                    },
                                     child: Container(
                                       width: 200,
                                       height: 200,
@@ -174,7 +239,7 @@ class _DashboardPage extends State<DashboardPage> {
                                             fit: BoxFit.cover,
                                           ),
                                           Text(
-                                            'Update Database',
+                                            'Update Building',
                                             style: TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: 17),
@@ -215,8 +280,7 @@ class _DashboardPage extends State<DashboardPage> {
                               if (widget.type == 'Admin')
                                 _cardContainer(6, "Account Management ",
                                     "assets/manageuser.png"),
-                              _cardContainer(
-                                  7, "Building", "assets/house2.png"),
+                              _cardContainer(7, "Units", "assets/house2.png"),
                               _cardContainer(
                                   8, "Archive", "assets/archive.png"),
                             ],
