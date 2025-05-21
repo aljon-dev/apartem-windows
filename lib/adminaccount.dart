@@ -68,8 +68,7 @@ class _AdminAccountPage extends State<AdminAccountPage> {
                     alignment: Alignment.center,
                     child: const Text(
                       'Manage User',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 32),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 32),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -77,8 +76,7 @@ class _AdminAccountPage extends State<AdminAccountPage> {
                     alignment: Alignment.center,
                     child: const Text(
                       'Admin Registration',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 24),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -106,37 +104,26 @@ class _AdminAccountPage extends State<AdminAccountPage> {
                                   height: 40,
                                   padding: const EdgeInsets.all(0),
                                   decoration: BoxDecoration(
-                                    color:
-                                        const Color.fromARGB(228, 12, 12, 12),
+                                    color: const Color.fromARGB(228, 12, 12, 12),
                                     borderRadius: BorderRadius.circular(5),
                                     boxShadow: const [
                                       BoxShadow(
-                                        color: Color(
-                                            0x661E1E1E), // Shadow color (#1E1E1E66)
-                                        offset: Offset(0,
-                                            2), // Horizontal and vertical offsets
-                                        blurRadius:
-                                            10.0, // Softness of the shadow
-                                        spreadRadius:
-                                            1.0, // Spread of the shadow
+                                        color: Color(0x661E1E1E), // Shadow color (#1E1E1E66)
+                                        offset: Offset(0, 2), // Horizontal and vertical offsets
+                                        blurRadius: 10.0, // Softness of the shadow
+                                        spreadRadius: 1.0, // Spread of the shadow
                                       ),
                                     ],
                                   ),
                                   child: TextButton(
                                     onPressed: () {
-                                      Services().AdminAccount(
-                                          username.text, password.text);
+                                      Services().AdminAccount(username.text, password.text);
 
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
-                                          content: Text(
-                                              'Create account successfully!'),
-                                          backgroundColor: Colors
-                                              .green, // Optional: Set a background color
-                                          duration: Duration(
-                                              seconds:
-                                                  2), // Optional: Set duration for the snackbar
+                                          content: Text('Create account successfully!'),
+                                          backgroundColor: Colors.green, // Optional: Set a background color
+                                          duration: Duration(seconds: 2), // Optional: Set duration for the snackbar
                                         ),
                                       );
 
@@ -193,9 +180,7 @@ class _AdminAccountPage extends State<AdminAccountPage> {
           padding: const EdgeInsets.only(left: 10),
           width: 300,
           height: 45,
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(width: 1, color: const Color(0xddDADADA))),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(width: 1, color: const Color(0xddDADADA))),
           child: TextField(
             style: const TextStyle(
               fontSize: 13.0,

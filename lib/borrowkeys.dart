@@ -48,8 +48,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                           ),
                           Text(
                             'Borrow Keys',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 23),
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
                           ),
                         ],
                       )),
@@ -74,8 +73,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Building Number: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "1", // Added line break here
@@ -95,8 +93,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Unit Number: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "2", // Added line break here
@@ -116,8 +113,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "For: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "Relatives",
@@ -137,12 +133,10 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Remarks: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
-                                          text:
-                                              "\nMy mother will borrowing the key. Her name is Juanita Dela Cruz.", // Added line break here
+                                          text: "\nMy mother will borrowing the key. Her name is Juanita Dela Cruz.", // Added line break here
                                         ),
                                       ],
                                     ),
@@ -155,8 +149,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                               SizedBox(
                                 width: MediaQuery.of(context).size.width / 2,
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
                                       width: 110,
@@ -181,8 +174,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                               ),
                                               Text(
                                                 'Decline',
-                                                style: TextStyle(
-                                                    color: Colors.white),
+                                                style: TextStyle(color: Colors.white),
                                               ),
                                             ],
                                           )),
@@ -210,8 +202,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                               ),
                                               Text(
                                                 'Accept',
-                                                style: TextStyle(
-                                                    color: Colors.white),
+                                                style: TextStyle(color: Colors.white),
                                               ),
                                             ],
                                           )),
@@ -241,8 +232,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Building Number: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "1", // Added line break here
@@ -262,8 +252,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Unit Number: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "2", // Added line break here
@@ -283,8 +272,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "For: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
                                           text: "Relatives",
@@ -304,12 +292,10 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                       children: [
                                         TextSpan(
                                           text: "Remarks: ",
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                         TextSpan(
-                                          text:
-                                              "\nMy mother will borrowing the key. Her name is Juanita Dela Cruz.", // Added line break here
+                                          text: "\nMy mother will borrowing the key. Her name is Juanita Dela Cruz.", // Added line break here
                                         ),
                                       ],
                                     ),
@@ -325,8 +311,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                               SizedBox(
                                 width: MediaQuery.of(context).size.width / 2,
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
                                       width: 110,
@@ -351,8 +336,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                               ),
                                               Text(
                                                 'Decline',
-                                                style: TextStyle(
-                                                    color: Colors.white),
+                                                style: TextStyle(color: Colors.white),
                                               ),
                                             ],
                                           )),
@@ -380,8 +364,7 @@ class _BorrowKeysPage extends State<BorrowKeysPage> {
                                               ),
                                               Text(
                                                 'Accept',
-                                                style: TextStyle(
-                                                    color: Colors.white),
+                                                style: TextStyle(color: Colors.white),
                                               ),
                                             ],
                                           )),

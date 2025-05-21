@@ -104,8 +104,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
-                          icon:
-                              const Icon(Icons.arrow_back, color: Colors.black),
+                          icon: const Icon(Icons.arrow_back, color: Colors.black),
                           label: const Text(
                             'Back',
                             style: TextStyle(
@@ -120,8 +119,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
                       const SizedBox(height: 30),
                       const Text(
                         'Tenant Registration',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 24),
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 24),
                       ),
                       const SizedBox(height: 30),
                       Form(
@@ -139,15 +137,13 @@ class _ManageUserPageState extends State<ManageUserPage> {
                             ]),
                             const SizedBox(height: 20),
                             _rowInputs([
-                              _formContainer(
-                                  "Building Number:", buildingnumber),
+                              _formContainer("Building Number:", buildingnumber),
                               _formContainer("Unit Number:", unitnumber),
                             ]),
                             const SizedBox(height: 20),
                             _rowInputs([
                               _formContainer("Username:", username),
-                              _formContainer("Password:", password,
-                                  isPassword: true),
+                              _formContainer("Password:", password, isPassword: true),
                             ]),
                             const SizedBox(height: 30),
                             Align(
@@ -157,8 +153,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
                                 height: 40,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color.fromARGB(228, 12, 12, 12),
+                                    backgroundColor: const Color.fromARGB(228, 12, 12, 12),
                                     shadowColor: const Color(0x661E1E1E),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(5),
@@ -205,13 +200,11 @@ class _ManageUserPageState extends State<ManageUserPage> {
     );
   }
 
-  Widget _formContainer(String label, TextEditingController controller,
-      {bool isPassword = false}) {
+  Widget _formContainer(String label, TextEditingController controller, {bool isPassword = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
         const SizedBox(height: 5),
         SizedBox(
           width: 300,
@@ -219,8 +212,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
           child: TextFormField(
             controller: controller,
             obscureText: isPassword,
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? 'Required' : null,
+            validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
             style: const TextStyle(fontSize: 13.0),
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.only(left: 10),
