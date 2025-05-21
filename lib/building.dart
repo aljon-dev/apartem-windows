@@ -181,8 +181,8 @@ class _BuildingPage extends State<BuildingPage> {
                                                     ),
                                                   ),
                                                   DataCell(
-                                                    Container(
-                                                      width: availableWidth * 0, // 20% of available width
+                                                    SizedBox(
+                                                      width: availableWidth * .1, // 20% of available width
                                                       child: IconButton(
                                                         icon: const Icon(Icons.info, color: Colors.blue),
                                                         tooltip: 'View Details',
@@ -191,7 +191,7 @@ class _BuildingPage extends State<BuildingPage> {
                                                             return TenantPage(
                                                               uid: widget.uid,
                                                               type: widget.type,
-                                                              buildingnumber: null,
+                                                              buildingnumber: buildingName.toString(),
                                                             );
                                                           }));
                                                         },
