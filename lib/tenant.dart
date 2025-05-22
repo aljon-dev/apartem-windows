@@ -22,12 +22,279 @@ class TenantPage extends StatefulWidget {
 class _TenantPageState extends State<TenantPage> {
   String? _selectedUnitNumber;
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final int _rowsPerPage = 10;
   int _currentPage = 0;
   String? selectedValue;
-  String? selectedValue2;
+
   String vacantValue = 'Yes';
   String? paymentValue;
+
+  Future<void> _AssignTenantUserBuilding(int buildingNumber) async {
+    // Form controllers
+    final TextEditingController firstNameController = TextEditingController();
+    final TextEditingController lastNameController = TextEditingController();
+    final TextEditingController middleNameController = TextEditingController();
+    final TextEditingController usernameController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController contactController = TextEditingController();
+    final TextEditingController rentalFeeController = TextEditingController();
+
+    String? selectedUnitNumber;
+    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Assign Tenant User Building'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Unit Number Dropdown
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).snapshots(),
+                        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                          if (snapshot.hasError) {
+                            return const Text('Something went wrong');
+                          }
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return const Text('No available units');
+                          }
+
+                          final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
+
+                          return DropdownButtonFormField<String>(
+                            value: selectedUnitNumber,
+                            hint: const Text('Select Unit Number'),
+                            decoration: const InputDecoration(
+                              labelText: 'Unit Number',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a unit number';
+                              }
+                              return null;
+                            },
+                            items: unitNumbers.map((String unitNumber) {
+                              return DropdownMenuItem<String>(
+                                value: unitNumber,
+                                child: Text(unitNumber),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                selectedUnitNumber = newValue;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // First Name Field
+                      TextFormField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'First Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter first name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Last Name Field
+                      TextFormField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Last Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter last name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Middle Name Field
+                      TextFormField(
+                        controller: middleNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Middle Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Username Field
+                      TextFormField(
+                        controller: usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Username',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter username';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Password Field
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter password';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Contact Field
+                      TextFormField(
+                        controller: contactController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter contact number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: rentalFeeController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Rental Fee',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter rental fee';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      try {
+                        // Add tenant to Firestore
+                        await FirebaseFirestore.instance.collection('tenant').add({
+                          'firstname': firstNameController.text,
+                          'lastname': lastNameController.text,
+                          'middlename': middleNameController.text,
+                          'unitnumber': selectedUnitNumber,
+                          'username': usernameController.text,
+                          'password': passwordController.text,
+                          'contactnumber': contactController.text,
+                          'buildingnumber': buildingNumber.toString(),
+                          'rentalfee': rentalFeeController.text,
+                        });
+
+                        // Update unit occupancy status
+                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: selectedUnitNumber).where('building#', isEqualTo: buildingNumber).get();
+
+                        for (var doc in unitQuery.docs) {
+                          await doc.reference.update({'isOccupied': true});
+                        }
+
+                        // Show success message
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tenant assigned successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        Navigator.of(context).pop();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error assigning tenant: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Assign Tenant'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((_) {
+      // Dispose controllers after dialog is closed
+      firstNameController.dispose();
+      lastNameController.dispose();
+      middleNameController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+      contactController.dispose();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     List<String> dropdownItems = ['Payment', 'Vacancy', 'View Sub-Account', 'Reset Password', 'Archive'];
@@ -51,6 +318,19 @@ class _TenantPageState extends State<TenantPage> {
         ),
       ),
       home: Scaffold(
+        appBar: AppBar(
+          title: TextButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back'),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+            ),
+          ),
+        ),
         backgroundColor: Colors.white,
         body: Stack(
           children: [
@@ -131,7 +411,7 @@ class _TenantPageState extends State<TenantPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           StreamBuilder<QuerySnapshot>(
-                                            stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').where('archive', isEqualTo: '0').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).where('archive', isEqualTo: '0').snapshots(),
+                                            stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).snapshots(),
                                             builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                                               if (snapshot.hasError) {
                                                 return Container(
@@ -287,9 +567,7 @@ class _TenantPageState extends State<TenantPage> {
 
                                     // Add Tenant Button
                                     ElevatedButton.icon(
-                                      onPressed: () {
-                                        // Your add tenant logic here
-                                      },
+                                      onPressed: () => _AssignTenantUserBuilding(int.parse(widget.buildingnumber)),
                                       icon: const Icon(Icons.person_add, size: 20),
                                       label: const Text('Add Tenant'),
                                       style: ElevatedButton.styleFrom(
@@ -314,7 +592,7 @@ class _TenantPageState extends State<TenantPage> {
                     ),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').where('archive', isEqualTo: '0').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).where('archive', isEqualTo: '0').snapshots(),
+                        stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
                             return const Center(child: Text('Something went wrong'));
@@ -417,7 +695,6 @@ class _TenantPageState extends State<TenantPage> {
                                     final contactnumber = doc['contactnumber'] ?? '';
                                     final username = doc['username'] ?? '';
                                     final password = doc['password'] ?? '';
-                                    final vacant = doc['vacant'] ?? '';
 
                                     return DataRow(
                                       cells: [
@@ -569,99 +846,6 @@ class _TenantPageState extends State<TenantPage> {
                                                                   } catch (e) {
                                                                     print("Error: $e");
                                                                   }
-                                                                },
-                                                                child: const Text('Save'),
-                                                              ),
-                                                            ],
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                  );
-                                                } else if (newValue == 'Vacancy') {
-                                                  String vacantValue = 'Yes';
-
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (BuildContext context) {
-                                                      return StatefulBuilder(
-                                                        builder: (BuildContext context, StateSetter setState) {
-                                                          return AlertDialog(
-                                                            title: const Text('Vacancy'),
-                                                            content: SizedBox(
-                                                              height: 100,
-                                                              child: Column(
-                                                                children: [
-                                                                  RadioListTile<String>(
-                                                                    title: const Text('Yes'),
-                                                                    value: 'Yes',
-                                                                    groupValue: vacantValue,
-                                                                    onChanged: (String? newValue) {
-                                                                      setState(() {
-                                                                        vacantValue = newValue!;
-                                                                      });
-                                                                    },
-                                                                  ),
-                                                                  RadioListTile<String>(
-                                                                    title: const Text('No'),
-                                                                    value: 'No',
-                                                                    groupValue: vacantValue,
-                                                                    onChanged: (String? newValue) {
-                                                                      setState(() {
-                                                                        vacantValue = newValue!;
-                                                                      });
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  Navigator.of(context).pop(); // Close the dialog
-                                                                },
-                                                                child: const Text('Close'),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  FirebaseFirestore.instance.collection('tenant').doc(doc.id).update({'vacant': vacantValue});
-
-                                                                  if (vacantValue == 'Yes') {
-                                                                    if (vacantValue == vacant) {
-                                                                    } else {
-                                                                      FirebaseFirestore.instance.collection('building').where('building', isEqualTo: buildingnumber).get().then((querySnapshot) {
-                                                                        for (var doc in querySnapshot.docs) {
-                                                                          // Check if 'available' is stored as a String and convert it to an int
-                                                                          int currentAvailable = int.tryParse(doc['available'].toString()) ?? 0;
-                                                                          int updatedAvailable = currentAvailable - 1;
-
-                                                                          // Update the document with the new 'available' value
-                                                                          doc.reference.update({
-                                                                            'available': updatedAvailable.toString(),
-                                                                          });
-                                                                        }
-                                                                      });
-                                                                    }
-                                                                  } else {
-                                                                    if (vacantValue == vacant) {
-                                                                    } else {
-                                                                      FirebaseFirestore.instance.collection('building').where('building', isEqualTo: buildingnumber).get().then((querySnapshot) {
-                                                                        for (var doc in querySnapshot.docs) {
-                                                                          // Check if 'available' is stored as a String and convert it to an int
-                                                                          int currentAvailable = int.tryParse(doc['available'].toString()) ?? 0;
-                                                                          int updatedAvailable = currentAvailable + 1;
-
-                                                                          // Update the document with the new 'available' value
-                                                                          doc.reference.update({
-                                                                            'available': updatedAvailable.toString(),
-                                                                          });
-                                                                        }
-                                                                      });
-                                                                    }
-                                                                  }
-
-                                                                  SuccessMessage('Successfully Set Vacant');
-                                                                  Navigator.of(context).pop();
                                                                 },
                                                                 child: const Text('Save'),
                                                               ),

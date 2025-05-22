@@ -78,7 +78,7 @@ class _buildingUnits extends State<buildingUnits> {
                           'available': int.parse(buildingunit.text),
                         });
                         String buildingId = building.id;
-                        await getBuildingUnits(int.parse(buildingunit.text), buildingId);
+                        await getBuildingUnits(int.parse(buildingunit.text), buildingId, int.parse(buildingname.text));
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -297,7 +297,7 @@ class _buildingUnits extends State<buildingUnits> {
     );
   }
 
-  Future<void> getBuildingUnits(int _BuildingUnits, String key) async {
+  Future<void> getBuildingUnits(int _BuildingUnits, String key, int BuildingNumber) async {
     final List<String> UnitType = [
       'Studio Type',
       'Bedroom Type',
@@ -371,13 +371,13 @@ class _buildingUnits extends State<buildingUnits> {
                       if (buildingUnitNumber[i].text.isEmpty || dropdownValues[i] == '') {
                         _Snackbar('Please Fill All Fields', Colors.red, context);
                         Navigator.pop(context);
-                        Navigator.pop(context);
                       } else {
                         _firestore.collection('UnitNumber').add({
                           'buildingId': key,
                           'unitNumber': int.parse(buildingUnitNumber[i].text),
                           'unitType': dropdownValues[i],
                           'isOccupied': false,
+                          'building#': BuildingNumber,
                         });
                         _Snackbar('Unit Added', Colors.green, context);
                         Navigator.pop(context);
