@@ -1,4 +1,5 @@
 import 'package:bogsandmila/logo.dart';
+import 'package:bogsandmila/saleRecordingInfoPage.dart';
 import 'package:bogsandmila/tenantsalesrecord.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -241,7 +242,7 @@ class _TenantPageState extends State<TenantPage> {
                           'password': passwordController.text,
                           'contactnumber': contactController.text,
                           'buildingnumber': buildingNumber.toString(),
-                          'rentalfee': rentalFeeController.text,
+                          'rentalfee': int.parse(rentalFeeController.text),
                         });
 
                         // Update unit occupancy status
@@ -295,14 +296,201 @@ class _TenantPageState extends State<TenantPage> {
     });
   }
 
+  Future<void> _showEditTenantDialog(QueryDocumentSnapshot doc) async {
+    // Get current tenant data
+    final tenantData = doc.data() as Map<String, dynamic>;
+
+    // Form controllers initialized with current values
+    final firstNameController = TextEditingController(text: tenantData['firstname']);
+    final lastNameController = TextEditingController(text: tenantData['lastname']);
+    final middleNameController = TextEditingController(text: tenantData['middlename'] ?? '');
+    final usernameController = TextEditingController(text: tenantData['username']);
+    final contactController = TextEditingController(text: tenantData['contactnumber']);
+    final rentalFeeController = TextEditingController(text: tenantData['rentalfee']?.toString() ?? '0');
+
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Tenant Information'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // First Name
+                  TextFormField(
+                    controller: firstNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'First Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter first name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Last Name
+                  TextFormField(
+                    controller: lastNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Last Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter last name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Middle Name
+                  TextFormField(
+                    controller: middleNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Middle Name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Username
+                  TextFormField(
+                    controller: usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter username';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Contact Number
+                  TextFormField(
+                    controller: contactController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Contact Number',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter contact number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Rental Fee
+                  TextFormField(
+                    controller: rentalFeeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Rental Fee',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter rental fee';
+                      }
+                      if (int.tryParse(value) == null) {
+                        return 'Please enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  try {
+                    await doc.reference.update({
+                      'firstname': firstNameController.text,
+                      'lastname': lastNameController.text,
+                      'middlename': middleNameController.text,
+                      'username': usernameController.text,
+                      'contactnumber': contactController.text,
+                      'rentalfee': int.parse(rentalFeeController.text),
+                    });
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tenant updated successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error updating tenant: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Save Changes'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Dispose controllers when dialog is closed
+    firstNameController.dispose();
+    lastNameController.dispose();
+    middleNameController.dispose();
+    usernameController.dispose();
+    contactController.dispose();
+    rentalFeeController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<String> dropdownItems = ['Payment', 'Vacancy', 'View Sub-Account', 'Reset Password', 'Archive'];
-    List<String> dropdownItems2 = ['Reset Password', 'Delete Account'];
-    List<String> dropdownVacant = [
-      'Yes',
-      'No',
-    ];
+    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit'];
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -675,6 +863,19 @@ class _TenantPageState extends State<TenantPage> {
                                       width: MediaQuery.of(context).size.width / 8,
                                       padding: const EdgeInsets.all(8.0),
                                       child: const Text(
+                                        'Rental Fee',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Container(
+                                      width: MediaQuery.of(context).size.width / 8,
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: const Text(
                                         'Action',
                                         style: TextStyle(
                                           color: Colors.white,
@@ -695,6 +896,7 @@ class _TenantPageState extends State<TenantPage> {
                                     final contactnumber = doc['contactnumber'] ?? '';
                                     final username = doc['username'] ?? '';
                                     final password = doc['password'] ?? '';
+                                    final rentalFee = int.parse(doc['rentalfee'].toString()) ?? '0';
 
                                     return DataRow(
                                       cells: [
@@ -721,10 +923,14 @@ class _TenantPageState extends State<TenantPage> {
                                             padding: const EdgeInsets.all(8.0),
                                             child: GestureDetector(
                                               child: Text(username, style: const TextStyle(color: Colors.black)),
-                                              onTap: () {
-                                                Navigator.push(context, MaterialPageRoute(builder: (context) => TenantSalesRecordPage(uid: widget.uid, type: widget.type, tenant_id: doc.id)));
-                                              },
+                                              onTap: () {},
                                             ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Container(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Text(rentalFee.toString(), style: const TextStyle(color: Colors.black)),
                                           ),
                                         ),
                                         DataCell(
@@ -740,121 +946,17 @@ class _TenantPageState extends State<TenantPage> {
                                                 selectedValue = null;
 
                                                 if (newValue == 'Payment') {
-                                                  String? PaymentValue;
-
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (BuildContext context) {
-                                                      return StatefulBuilder(
-                                                        builder: (BuildContext context, StateSetter setState) {
-                                                          return AlertDialog(
-                                                            title: const Text('Payment'),
-                                                            content: SizedBox(
-                                                              height: 100,
-                                                              child: Column(
-                                                                children: [
-                                                                  RadioListTile<String>(
-                                                                    title: const Text('Paid'),
-                                                                    value: 'Paid',
-                                                                    groupValue: PaymentValue,
-                                                                    onChanged: (String? newValue) {
-                                                                      setState(() {
-                                                                        PaymentValue = newValue;
-                                                                      });
-                                                                    },
-                                                                  ),
-                                                                  RadioListTile<String>(
-                                                                    title: const Text('Unpaid'),
-                                                                    value: 'Unpaid',
-                                                                    groupValue: PaymentValue,
-                                                                    onChanged: (String? newValue) {
-                                                                      setState(() {
-                                                                        PaymentValue = newValue;
-                                                                      });
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  Navigator.of(context).pop(); // Close the dialog
-                                                                },
-                                                                child: const Text('Close'),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed: () async {
-                                                                  String getCurrentMonth() {
-                                                                    return DateFormat.MMMM().format(DateTime.now());
-                                                                  }
-
-                                                                  String getCurrentYear() {
-                                                                    return DateFormat.y().format(DateTime.now());
-                                                                  }
-
-                                                                  String getCurrentDateTime() {
-                                                                    return DateFormat('yyyy-MM-dd – HH:mm').format(DateTime.now());
-                                                                  }
-
-                                                                  String rental_cost = "";
-                                                                  if (widget.buildingnumber == 1) {
-                                                                    rental_cost = "5000";
-                                                                  } else if (widget.buildingnumber == 2) {
-                                                                    rental_cost = "5000";
-                                                                  } else if (widget.buildingnumber == 3) {
-                                                                    rental_cost = "6000";
-                                                                  } else if (widget.buildingnumber == 4) {
-                                                                    rental_cost = "3500";
-                                                                  } else if (widget.buildingnumber == 5) {
-                                                                    rental_cost = "3500";
-                                                                  }
-
-                                                                  final firestore = FirebaseFirestore.instance;
-
-                                                                  String currentMonth = getCurrentMonth();
-                                                                  String currentYear = getCurrentYear();
-                                                                  String uid = doc.id;
-
-                                                                  try {
-                                                                    QuerySnapshot querySnapshot = await firestore.collection('sales_record').where('month', isEqualTo: currentMonth).where('year', isEqualTo: currentYear).where('uid', isEqualTo: uid).get();
-
-                                                                    if (querySnapshot.docs.isNotEmpty) {
-                                                                      DocumentReference documentRef = querySnapshot.docs.first.reference;
-                                                                      await documentRef.update({
-                                                                        'payer_name': '$firstname $lastname',
-                                                                        'rental_cost': rental_cost,
-                                                                        'building': widget.buildingnumber.toString(),
-                                                                        'datetime': getCurrentDateTime(),
-                                                                        'status': PaymentValue, // Use PaymentValue directly
-                                                                      });
-                                                                    } else {
-                                                                      await firestore.collection('sales_record').add({
-                                                                        'month': currentMonth,
-                                                                        'year': currentYear,
-                                                                        'uid': uid,
-                                                                        'payer_name': '$firstname $lastname',
-                                                                        'rental_cost': rental_cost,
-                                                                        'building': widget.buildingnumber.toString(),
-                                                                        'datetime': getCurrentDateTime(),
-                                                                        'status': PaymentValue, // Use PaymentValue directly
-                                                                      });
-                                                                    }
-
-                                                                    SuccessMessage('Successfully Set Vacant');
-                                                                    Navigator.of(context).pop();
-                                                                  } catch (e) {
-                                                                    print("Error: $e");
-                                                                  }
-                                                                },
-                                                                child: const Text('Save'),
-                                                              ),
-                                                            ],
-                                                          );
-                                                        },
-                                                      );
-                                                    },
-                                                  );
+                                                  Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => saleRecordingInfoPage(
+                                                          uid: doc.id,
+                                                          firstname: firstname,
+                                                          lastname: lastname,
+                                                          buildnumber: widget.buildingnumber,
+                                                          unitnumber: unitnumber,
+                                                        ),
+                                                      ));
                                                 } else if (newValue == 'View Sub-Account') {
                                                   showDialog(
                                                     context: context,
@@ -936,12 +1038,8 @@ class _TenantPageState extends State<TenantPage> {
                                                   });
 
                                                   SuccessMessage('Successfully Reset Password');
-                                                } else if (newValue == 'Archive') {
-                                                  FirebaseFirestore.instance.collection('tenant').doc(doc.id).update({
-                                                    'archive': '1',
-                                                  });
-
-                                                  SuccessMessage('Successfully Archive Account');
+                                                } else if (newValue == 'Edit') {
+                                                  _showEditTenantDialog(doc);
                                                 }
                                               });
                                             },
