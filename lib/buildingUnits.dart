@@ -46,23 +46,15 @@ class _buildingUnits extends State<buildingUnits> {
                       children: [
                         TextFormField(
                           controller: buildingname,
-                          decoration: const InputDecoration(
-                              labelText: 'Building Number',
-                              border: OutlineInputBorder()),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'PLEASE ENTER BUILDING NUMBER'
-                              : null,
+                          decoration: const InputDecoration(labelText: 'Building Number', border: OutlineInputBorder()),
+                          validator: (value) => value == null || value.isEmpty ? 'PLEASE ENTER BUILDING NUMBER' : null,
                         ),
                         const SizedBox(height: 10),
                         TextFormField(
                           keyboardType: TextInputType.number,
                           controller: buildingunit,
-                          decoration: const InputDecoration(
-                              labelText: 'How many Units in this Building',
-                              border: OutlineInputBorder()),
-                          validator: (value) => value == null || value.isEmpty
-                              ? 'Please Enter Your Number of Units'
-                              : null,
+                          decoration: const InputDecoration(labelText: 'How many Units in this Building', border: OutlineInputBorder()),
+                          validator: (value) => value == null || value.isEmpty ? 'Please Enter Your Number of Units' : null,
                         ),
                       ],
                     ))
@@ -73,35 +65,24 @@ class _buildingUnits extends State<buildingUnits> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5)),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.red),
+                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.red),
                   icon: const Icon(Icons.cancel),
                   label: const Text('Cancel')),
               TextButton.icon(
                   onPressed: () async {
                     if (formKey.currentState!.validate()) {
-                      final Building = await _firestore
-                          .collection('building')
-                          .where('building',
-                              isEqualTo: int.parse(buildingname.text))
-                          .get();
+                      final Building = await _firestore.collection('building').where('building', isEqualTo: int.parse(buildingname.text)).get();
                       if (Building.docs.isEmpty) {
-                        final building =
-                            await _firestore.collection('building').add({
+                        final building = await _firestore.collection('building').add({
                           'building': int.parse(buildingname.text),
                           'available': int.parse(buildingunit.text),
                         });
                         String buildingId = building.id;
-                        await getBuildingUnits(
-                            int.parse(buildingunit.text), buildingId);
+                        await getBuildingUnits(int.parse(buildingunit.text), buildingId);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Building Already Exists',
-                                style: TextStyle(color: Colors.white)),
+                            content: Text('Building Already Exists', style: TextStyle(color: Colors.white)),
                             duration: Duration(seconds: 2),
                             backgroundColor: Colors.red,
                           ),
@@ -110,11 +91,7 @@ class _buildingUnits extends State<buildingUnits> {
                       }
                     }
                   },
-                  style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5)),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.blue),
+                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.blue),
                   icon: const Icon(Icons.add),
                   label: const Text('Add Building Unit'))
             ],
@@ -161,15 +138,12 @@ class _buildingUnits extends State<buildingUnits> {
                         flex: 5,
                         child: DropdownButtonFormField(
                           items: UnitType.map((String item) {
-                            return DropdownMenuItem<String>(
-                                child: Text(item), value: item);
+                            return DropdownMenuItem<String>(child: Text(item), value: item);
                           }).toList(),
                           onChanged: (String? newValue) {
                             newUnitTypeController.text = newValue!;
                           },
-                          decoration: const InputDecoration(
-                              labelText: 'Select Unit Type',
-                              border: OutlineInputBorder()),
+                          decoration: const InputDecoration(labelText: 'Select Unit Type', border: OutlineInputBorder()),
                         ),
                       ),
                       SizedBox(
@@ -179,67 +153,45 @@ class _buildingUnits extends State<buildingUnits> {
                         height: 50,
                         child: TextButton.icon(
                             onPressed: () async {
-                              if (newUnitNumberController.text.isEmpty ||
-                                  newUnitTypeController.text.isEmpty) {
-                                _Snackbar('Please Fill All Fields', Colors.red,
-                                    context);
+                              if (newUnitNumberController.text.isEmpty || newUnitTypeController.text.isEmpty) {
+                                _Snackbar('Please Fill All Fields', Colors.red, context);
                               } else {
-                                final documentSnapshot = await _firestore
-                                    .collection('UnitNumber')
-                                    .where('buildingId', isEqualTo: BuildingId)
-                                    .where('unitNumber',
-                                        isEqualTo: int.parse(
-                                            newUnitNumberController.text))
-                                    .get();
+                                final documentSnapshot = await _firestore.collection('UnitNumber').where('buildingId', isEqualTo: BuildingId).where('unitNumber', isEqualTo: int.parse(newUnitNumberController.text)).get();
 
                                 if (documentSnapshot.docs.isNotEmpty) {
-                                  _Snackbar('Unit Number Already Exists',
-                                      Colors.red, context);
+                                  _Snackbar('Unit Number Already Exists', Colors.red, context);
                                   return;
                                 } else {
                                   _firestore.collection('UnitNumber').add({
                                     'buildingId': BuildingId,
-                                    'unitNumber':
-                                        int.parse(newUnitNumberController.text),
+                                    'unitNumber': int.parse(newUnitNumberController.text),
                                     'unitType': newUnitTypeController.text,
                                     'isOccupied': false,
                                   }).then((_) {
-                                    _Snackbar(
-                                        'Unit Added', Colors.green, context);
+                                    _Snackbar('Unit Added', Colors.green, context);
                                     Navigator.pop(context);
                                   }).catchError((error) {
-                                    _Snackbar('Failed to add the unit',
-                                        Colors.red, context);
+                                    _Snackbar('Failed to add the unit', Colors.red, context);
                                   });
                                 }
                               }
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Add Unit'),
-                            style: TextButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5)),
-                                foregroundColor: Colors.white,
-                                backgroundColor: Colors.blue)),
+                            style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.blue)),
                       )
                     ],
                   ),
                   const SizedBox(height: 10),
                   Expanded(
                     child: StreamBuilder(
-                      stream: _firestore
-                          .collection('UnitNumber')
-                          .where('buildingId', isEqualTo: BuildingId)
-                          .orderBy('unitNumber', descending: false)
-                          .snapshots(),
-                      builder: (BuildContext context,
-                          AsyncSnapshot<QuerySnapshot> snapshot) {
+                      stream: _firestore.collection('UnitNumber').where('buildingId', isEqualTo: BuildingId).orderBy('unitNumber', descending: false).snapshots(),
+                      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasError) {
                           return const Center(child: Text('Error'));
                         }
                         if (!snapshot.hasData) {
-                          return const Center(
-                              child: CircularProgressIndicator());
+                          return const Center(child: CircularProgressIndicator());
                         }
 
                         final BuildingSnapshot = snapshot.data!.docs;
@@ -256,22 +208,15 @@ class _buildingUnits extends State<buildingUnits> {
 
                             // Proper initialization of controllers
                             // Create controllers with initial values from Firestore
-                            TextEditingController unitNumberController =
-                                TextEditingController(
-                                    text:
-                                        buildingData['unitNumber'].toString());
-                            TextEditingController unitTypeController =
-                                TextEditingController(
-                                    text: buildingData['unitType']);
+                            TextEditingController unitNumberController = TextEditingController(text: buildingData['unitNumber'].toString());
+                            TextEditingController unitTypeController = TextEditingController(text: buildingData['unitType']);
                             String unitKey = buildingData.id;
 
                             return Card(
                               child: ListTile(
-                                  title: Text(
-                                      'Building Unit Number: ${buildingData['unitNumber'].toString()}'),
+                                  title: Text('Building Unit Number: ${buildingData['unitNumber'].toString()}'),
                                   subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 8),
                                       TextFormField(
@@ -284,10 +229,7 @@ class _buildingUnits extends State<buildingUnits> {
                                       ),
                                       const SizedBox(height: 8),
                                       DropdownButtonFormField<String>(
-                                        value:
-                                            unitTypeController.text.isNotEmpty
-                                                ? unitTypeController.text
-                                                : null,
+                                        value: unitTypeController.text.isNotEmpty ? unitTypeController.text : null,
                                         items: UnitType.map((String item) {
                                           return DropdownMenuItem<String>(
                                             value: item,
@@ -295,8 +237,7 @@ class _buildingUnits extends State<buildingUnits> {
                                           );
                                         }).toList(),
                                         onChanged: (String? newValue) {
-                                          unitTypeController.text = newValue ??
-                                              unitTypeController.text;
+                                          unitTypeController.text = newValue ?? unitTypeController.text;
                                         },
                                         decoration: const InputDecoration(
                                           labelText: 'Select Unit Type',
@@ -311,49 +252,29 @@ class _buildingUnits extends State<buildingUnits> {
                                       IconButton(
                                         icon: const Icon(Icons.edit),
                                         onPressed: () async {
-                                          List unitNumber =
-                                              buildingData['unitNumber'];
+                                          List unitNumber = buildingData['unitNumber'];
 
-                                          for (int i = 0;
-                                              i < unitNumber.length;
-                                              i++) {
-                                            if (unitNumber[i] ==
-                                                int.parse(unitNumberController
-                                                    .text)) {
-                                              _Snackbar(
-                                                  'Unit Number Already Exists',
-                                                  Colors.red,
-                                                  context);
+                                          for (int i = 0; i < unitNumber.length; i++) {
+                                            if (unitNumber[i] == int.parse(unitNumberController.text)) {
+                                              _Snackbar('Unit Number Already Exists', Colors.red, context);
                                               return;
                                             }
                                           }
-                                          _firestore
-                                              .collection('UnitNumber')
-                                              .doc(buildingData.id)
-                                              .update({
-                                            'unitNumber': int.parse(
-                                                unitNumberController.text),
+                                          _firestore.collection('UnitNumber').doc(buildingData.id).update({
+                                            'unitNumber': int.parse(unitNumberController.text),
                                             'unitType': unitTypeController.text,
                                           }).then((_) {
-                                            _Snackbar('Data Updated',
-                                                Colors.green, context);
+                                            _Snackbar('Data Updated', Colors.green, context);
                                           }).catchError((error) {
-                                            _Snackbar(
-                                                'Failed to update the data ',
-                                                Colors.red,
-                                                context);
+                                            _Snackbar('Failed to update the data ', Colors.red, context);
                                           });
                                         },
                                       ),
                                       IconButton(
                                           icon: const Icon(Icons.delete),
                                           onPressed: () async {
-                                            _firestore
-                                                .collection('UnitNumber')
-                                                .doc(unitKey)
-                                                .delete();
-                                            _Snackbar('Successfully Deleted',
-                                                Colors.red, context);
+                                            _firestore.collection('UnitNumber').doc(unitKey).delete();
+                                            _Snackbar('Successfully Deleted', Colors.red, context);
                                           }),
                                     ],
                                   )),
@@ -383,10 +304,8 @@ class _buildingUnits extends State<buildingUnits> {
       'Bungalow Type',
     ];
 
-    List<TextEditingController> buildingUnitNumber =
-        List.generate(_BuildingUnits, (index) => TextEditingController());
-    List<String?> dropdownValues =
-        List.generate(_BuildingUnits, (index) => null);
+    List<TextEditingController> buildingUnitNumber = List.generate(_BuildingUnits, (index) => TextEditingController());
+    List<String?> dropdownValues = List.generate(_BuildingUnits, (index) => null);
 
     return showDialog(
         context: context,
@@ -444,19 +363,13 @@ class _buildingUnits extends State<buildingUnits> {
                 },
                 label: Text('Cancel'),
                 icon: Icon(Icons.cancel),
-                style: TextButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5)),
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.red),
+                style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.red),
               ),
               TextButton.icon(
                   onPressed: () {
                     for (int i = 0; i < _BuildingUnits; i++) {
-                      if (buildingUnitNumber[i].text.isEmpty ||
-                          dropdownValues[i] == '') {
-                        _Snackbar(
-                            'Please Fill All Fields', Colors.red, context);
+                      if (buildingUnitNumber[i].text.isEmpty || dropdownValues[i] == '') {
+                        _Snackbar('Please Fill All Fields', Colors.red, context);
                         Navigator.pop(context);
                         Navigator.pop(context);
                       } else {
@@ -468,16 +381,11 @@ class _buildingUnits extends State<buildingUnits> {
                         });
                         _Snackbar('Unit Added', Colors.green, context);
                         Navigator.pop(context);
-                        Navigator.pop(context);
                       }
                     }
                   },
                   icon: const Icon(Icons.save),
-                  style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5)),
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.blue),
+                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.blue),
                   label: const Text('Save Units'))
             ],
           );
@@ -514,10 +422,7 @@ class _buildingUnits extends State<buildingUnits> {
                 children: [
                   const Text(
                     'Building Units',
-                    style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   ElevatedButton.icon(
                     onPressed: () => AddBuilding(),
@@ -535,8 +440,7 @@ class _buildingUnits extends State<buildingUnits> {
             ),
             StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('building').snapshots(),
-                builder: (BuildContext context,
-                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.hasError) {
                     return const Center(child: Text('Error'));
                   }
@@ -552,13 +456,30 @@ class _buildingUnits extends State<buildingUnits> {
                         final buildingData = buildingSnapshot[index];
                         return Card(
                           child: ListTile(
-                            title: Text(
-                                'Building Number: ${buildingData['building']}'),
-                            subtitle: Text(
-                                'Available Units: ${buildingData['available']}'),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => EditShowData(buildingData.id),
+                            title: Text('Building Number: ${buildingData['building']}'),
+                            subtitle: Text('Available Units: ${buildingData['available']}'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () {
+                                    EditShowData(buildingData.id);
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    _firestore.collection('building').doc(buildingData.id).delete();
+                                    _firestore.collection('UnitNumber').where('buildingId', isEqualTo: buildingData.id).get().then((snapshot) {
+                                      for (var doc in snapshot.docs) {
+                                        doc.reference.delete();
+                                      }
+                                    });
+                                    _Snackbar('Successfully Deleted', Colors.red, context);
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         );

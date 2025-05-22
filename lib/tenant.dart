@@ -20,6 +20,8 @@ class TenantPage extends StatefulWidget {
 }
 
 class _TenantPageState extends State<TenantPage> {
+  String? _selectedUnitNumber;
+
   final int _rowsPerPage = 10;
   int _currentPage = 0;
   String? selectedValue;
@@ -86,6 +88,230 @@ class _TenantPageState extends State<TenantPage> {
                         ],
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Filter and Action Section
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 2,
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Section Title
+
+                                // Filter and Button Row
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    // Unit Number Selection
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Select Unit Number',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          StreamBuilder<QuerySnapshot>(
+                                            stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').where('archive', isEqualTo: '0').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).where('archive', isEqualTo: '0').snapshots(),
+                                            builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                              if (snapshot.hasError) {
+                                                return Container(
+                                                  height: 56,
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(color: Colors.red[300]!),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: const Center(
+                                                    child: Text(
+                                                      'Error loading units',
+                                                      style: TextStyle(color: Colors.red),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+
+                                              if (!snapshot.hasData) {
+                                                return Container(
+                                                  height: 56,
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(color: Colors.grey[300]!),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: const Center(
+                                                    child: SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+
+                                              final data = snapshot.data!.docs;
+
+                                              // Get unique unit numbers and sort them
+                                              Set<String> uniqueUnits = {};
+                                              for (var doc in data) {
+                                                Map<String, dynamic> docData = doc.data() as Map<String, dynamic>;
+                                                String unitnumber = docData['unitnumber']?.toString() ?? '';
+                                                if (unitnumber.isNotEmpty) {
+                                                  uniqueUnits.add(unitnumber);
+                                                }
+                                              }
+
+                                              List<String> sortedUnits = uniqueUnits.toList()
+                                                ..sort((a, b) {
+                                                  // Try to sort numerically if possible
+                                                  final numA = int.tryParse(a);
+                                                  final numB = int.tryParse(b);
+                                                  if (numA != null && numB != null) {
+                                                    return numA.compareTo(numB);
+                                                  }
+                                                  return a.compareTo(b);
+                                                });
+
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: Colors.grey[300]!),
+                                                ),
+                                                child: DropdownButtonFormField<String>(
+                                                  value: _selectedUnitNumber,
+                                                  hint: Row(
+                                                    children: [
+                                                      Icon(Icons.home, size: 20, color: Colors.grey[500]),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        'Choose unit number',
+                                                        style: TextStyle(color: Colors.grey[600]),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  items: [
+                                                    DropdownMenuItem<String>(
+                                                      value: null,
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(Icons.clear_all, size: 20, color: Colors.grey[600]),
+                                                          const SizedBox(width: 8),
+                                                          Text(
+                                                            'All Units',
+                                                            style: TextStyle(
+                                                              color: Colors.grey[600],
+                                                              fontWeight: FontWeight.w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    ...sortedUnits.map((String unitnumber) {
+                                                      return DropdownMenuItem<String>(
+                                                        value: unitnumber,
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.apartment, size: 20, color: Colors.blue[600]),
+                                                            const SizedBox(width: 8),
+                                                            Text(
+                                                              'Unit $unitnumber',
+                                                              style: const TextStyle(fontWeight: FontWeight.w500),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  ],
+                                                  onChanged: (String? newValue) {
+                                                    setState(() {
+                                                      _selectedUnitNumber = newValue;
+                                                    });
+                                                  },
+                                                  decoration: const InputDecoration(
+                                                    border: InputBorder.none,
+                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                  ),
+                                                  dropdownColor: Colors.white,
+                                                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 20),
+
+                                    // Clear Filter Button
+                                    if (_selectedUnitNumber != null)
+                                      Container(
+                                        margin: const EdgeInsets.only(right: 12),
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            setState(() {
+                                              _selectedUnitNumber = null;
+                                            });
+                                          },
+                                          icon: const Icon(Icons.clear, size: 18),
+                                          label: const Text('Clear'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.grey[100],
+                                            foregroundColor: Colors.grey[700],
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                              side: BorderSide(color: Colors.grey[300]!),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                    // Add Tenant Button
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        // Your add tenant logic here
+                                      },
+                                      icon: const Icon(Icons.person_add, size: 20),
+                                      label: const Text('Add Tenant'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue[600],
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // Selected Unit Info
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').where('archive', isEqualTo: '0').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).where('archive', isEqualTo: '0').snapshots(),
@@ -98,8 +324,17 @@ class _TenantPageState extends State<TenantPage> {
                           }
 
                           final data = snapshot.data!.docs;
+                          List<QueryDocumentSnapshot> filteredData = data;
+                          if (_selectedUnitNumber != null && _selectedUnitNumber!.isNotEmpty) {
+                            filteredData = data.where((doc) {
+                              final unitnumber = doc['unitnumber']?.toString().trim().toLowerCase() ?? '';
+                              final selectedUnit = _selectedUnitNumber!.trim().toLowerCase();
+                              return unitnumber == selectedUnit;
+                            }).toList();
+                          }
+
                           final startIndex = _currentPage * _rowsPerPage;
-                          final endIndex = (startIndex + _rowsPerPage < data.length) ? startIndex + _rowsPerPage : data.length;
+                          final endIndex = (startIndex + _rowsPerPage < filteredData.length) ? startIndex + _rowsPerPage : filteredData.length;
 
                           return Column(
                             children: [
@@ -162,19 +397,6 @@ class _TenantPageState extends State<TenantPage> {
                                       width: MediaQuery.of(context).size.width / 8,
                                       padding: const EdgeInsets.all(8.0),
                                       child: const Text(
-                                        'Password',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
                                         'Action',
                                         style: TextStyle(
                                           color: Colors.white,
@@ -187,7 +409,7 @@ class _TenantPageState extends State<TenantPage> {
                                 rows: List.generate(
                                   endIndex - startIndex,
                                   (index) {
-                                    final doc = data[startIndex + index];
+                                    final doc = filteredData[startIndex + index];
                                     final firstname = doc['firstname'] ?? '';
                                     final lastname = doc['lastname'] ?? '';
                                     final buildingnumber = doc['buildingnumber'] ?? '';
@@ -226,12 +448,6 @@ class _TenantPageState extends State<TenantPage> {
                                                 Navigator.push(context, MaterialPageRoute(builder: (context) => TenantSalesRecordPage(uid: widget.uid, type: widget.type, tenant_id: doc.id)));
                                               },
                                             ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(password, style: const TextStyle(color: Colors.black)),
                                           ),
                                         ),
                                         DataCell(

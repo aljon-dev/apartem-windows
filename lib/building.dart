@@ -166,7 +166,7 @@ class _BuildingPage extends State<BuildingPage> {
                                                     Container(
                                                       width: availableWidth * 0.1, // 30% of available width
                                                       child: Container(
-                                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                         decoration: BoxDecoration(
                                                           color: availability == 0 ? Colors.red[100] : Colors.green[100],
                                                           borderRadius: BorderRadius.circular(4),
