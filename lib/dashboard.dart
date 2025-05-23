@@ -239,7 +239,7 @@ class _DashboardPage extends State<DashboardPage> {
                               if (widget.type == 'Admin') _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
-
+                              _cardContainer(1, "Announce", "assets/announce.png"),
                               _cardContainer(3, "Request", "assets/request.png"),
                               _cardContainer(7, "Units", "assets/house2.png"),
                               _cardContainer(8, "Archive", "assets/archive.png"),
