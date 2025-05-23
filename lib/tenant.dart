@@ -246,10 +246,10 @@ class _TenantPageState extends State<TenantPage> {
                         });
 
                         // Update unit occupancy status
-                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: selectedUnitNumber).where('building#', isEqualTo: buildingNumber).get();
+                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: selectedUnitNumber).where('building#', isEqualTo: widget.buildingnumber).get();
 
-                        for (var doc in unitQuery.docs) {
-                          await doc.reference.update({'isOccupied': true});
+                        if (unitQuery.docs.isNotEmpty) {
+                          await unitQuery.docs.first.reference.update({'isOccupied': true});
                         }
 
                         // Show success message
@@ -489,7 +489,7 @@ class _TenantPageState extends State<TenantPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit'];
+    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete'];
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -891,8 +891,9 @@ class _TenantPageState extends State<TenantPage> {
                                     final doc = filteredData[startIndex + index];
                                     final firstname = doc['firstname'] ?? '';
                                     final lastname = doc['lastname'] ?? '';
-                                    final buildingnumber = doc['buildingnumber'] ?? '';
                                     final unitnumber = doc['unitnumber'] ?? '';
+                                    final buildingnumber = doc['buildingnumber'] ?? '';
+                                    final userunitnumber = doc['unitnumber'] ?? '';
                                     final contactnumber = doc['contactnumber'] ?? '';
                                     final username = doc['username'] ?? '';
                                     final password = doc['password'] ?? '';
@@ -942,7 +943,7 @@ class _TenantPageState extends State<TenantPage> {
                                             ),
                                             icon: const FaIcon(FontAwesomeIcons.ellipsisVertical), // Remove the default dropdown icon
                                             onChanged: (String? newValue) {
-                                              setState(() {
+                                              setState(() async {
                                                 selectedValue = null;
 
                                                 if (newValue == 'Payment') {
@@ -1040,6 +1041,23 @@ class _TenantPageState extends State<TenantPage> {
                                                   SuccessMessage('Successfully Reset Password');
                                                 } else if (newValue == 'Edit') {
                                                   _showEditTenantDialog(doc);
+                                                } else if (newValue == 'Delete') {
+                                                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+                                                  Map<String, dynamic> ArchiveData = {...data, 'buildingnumber': "001", 'unitnumber': "001"};
+                                                  await FirebaseFirestore.instance.collection('Archive').doc(doc.id).set(ArchiveData);
+
+                                                  await FirebaseFirestore.instance.collection('tenant').doc(doc.id).delete();
+
+                                                  final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: userunitnumber).where('building#', isEqualTo: widget.buildingnumber).get();
+
+                                                  for (var unitDoc in unitQuery.docs) {
+                                                    await FirebaseFirestore.instance.collection('UnitNumber').doc(unitDoc.id).update({
+                                                      'isOccupied': false,
+                                                    });
+                                                  }
+
+                                                  SuccessMessage('Successfully Deleted');
                                                 }
                                               });
                                             },
