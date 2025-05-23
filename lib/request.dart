@@ -19,6 +19,21 @@ class _RequestPage extends State<RequestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Disables automatic back button
+        title: GestureDetector(
+          onTap: () {
+            Navigator.pop(context); // Custom back navigation
+          },
+          child: const Row(
+            children: [
+              Icon(Icons.arrow_back),
+              SizedBox(width: 8),
+              Text('Back'),
+            ],
+          ),
+        ),
+      ),
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -39,8 +54,7 @@ class _RequestPage extends State<RequestPage> {
                     alignment: Alignment.center,
                     child: const Text(
                       'Requests',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
                     ),
                   ),
                   const SizedBox(height: 90),
@@ -64,8 +78,7 @@ class _RequestPage extends State<RequestPage> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Image(
-                                        image: AssetImage(
-                                            'assets/maintenancerequest.png'),
+                                        image: AssetImage('assets/maintenancerequest.png'),
                                         fit: BoxFit.cover,
                                       ),
                                       SizedBox(
@@ -73,9 +86,7 @@ class _RequestPage extends State<RequestPage> {
                                       ),
                                       Text(
                                         'Maintenance Request',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15),
+                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                       ),
                                       SizedBox(
                                         height: 10,
@@ -88,11 +99,7 @@ class _RequestPage extends State<RequestPage> {
                                   ),
                                 ),
                                 onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              maintenanceRequestPage()));
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => maintenanceRequestPage()));
                                 },
                               ),
                               const SizedBox(
@@ -111,8 +118,7 @@ class _RequestPage extends State<RequestPage> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Image(
-                                        image:
-                                            AssetImage('assets/borrowkeys.png'),
+                                        image: AssetImage('assets/borrowkeys.png'),
                                         fit: BoxFit.cover,
                                       ),
                                       SizedBox(
@@ -120,9 +126,7 @@ class _RequestPage extends State<RequestPage> {
                                       ),
                                       Text(
                                         'Borrow Keys',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15),
+                                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                       ),
                                       SizedBox(
                                         height: 10,
@@ -135,12 +139,7 @@ class _RequestPage extends State<RequestPage> {
                                   ),
                                 ),
                                 onTap: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => BorrowKeysPage(
-                                              uid: widget.uid,
-                                              type: widget.type)));
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => borrowKeypage()));
                                 },
                               ),
                             ],

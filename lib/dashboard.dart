@@ -61,40 +61,25 @@ class _DashboardPage extends State<DashboardPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         StreamBuilder<QuerySnapshot>(
-                            stream: _firestore
-                                .collection('notifications')
-                                .where('userId', isEqualTo: 'userAdmin')
-                                .snapshots(),
-                            builder: (context,
-                                AsyncSnapshot<QuerySnapshot> snapshot) {
+                            stream: _firestore.collection('notifications').where('userId', isEqualTo: 'userAdmin').snapshots(),
+                            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                               if (snapshot.hasError) {
-                                const Center(
-                                    child:
-                                        Text('Failed to load notifications'));
+                                const Center(child: Text('Failed to load notifications'));
                               }
 
                               final notifData = snapshot.data!.docs;
-                              final unReadCount = notifData
-                                  .where((doc) => doc['isRead'] == false)
-                                  .length;
+                              final unReadCount = notifData.where((doc) => doc['isRead'] == false).length;
                               return Row(
                                 children: [
                                   IconButton(
-                                    icon: Icon(unReadCount != 0
-                                        ? Icons.notification_important_outlined
-                                        : Icons.notifications),
+                                    icon: Icon(unReadCount != 0 ? Icons.notification_important_outlined : Icons.notifications),
                                     onPressed: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  notificationPage()));
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => notificationPage()));
                                     },
                                   ),
                                   Text('Notifications'),
@@ -109,26 +94,21 @@ class _DashboardPage extends State<DashboardPage> {
                               context: context,
                               builder: (BuildContext context) {
                                 return AlertDialog(
-                                  title:
-                                      const Center(child: Text('Confirmation')),
-                                  content: const Text(
-                                      'Are You Sure Want to log out?'),
+                                  title: const Center(child: Text('Confirmation')),
+                                  content: const Text('Are You Sure Want to log out?'),
                                   actions: [
                                     ElevatedButton(
                                       onPressed: () {
                                         Navigator.pushReplacement(
                                           context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const LoginPage()),
+                                          MaterialPageRoute(builder: (context) => const LoginPage()),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(10),
                                         ),
                                       ),
                                       child: const Text('Confirm'),
@@ -141,8 +121,7 @@ class _DashboardPage extends State<DashboardPage> {
                                         backgroundColor: Colors.red,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(10),
                                         ),
                                       ),
                                       child: const Text('Cancel'),
@@ -169,8 +148,7 @@ class _DashboardPage extends State<DashboardPage> {
                     alignment: Alignment.center,
                     child: Text(
                       widget.type == 'Admin' ? 'Admin' : 'Super Admin',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
                     ),
                   ),
                   SizedBox(height: widget.type == 'Super Admin' ? 90 : 10),
@@ -181,8 +159,7 @@ class _DashboardPage extends State<DashboardPage> {
                           if (widget.type == 'Super Admin')
                             if (widget.type == 'Super Admin')
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
                                   // GestureDetector(
                                   //   onTap: _launchURL,
@@ -215,11 +192,7 @@ class _DashboardPage extends State<DashboardPage> {
                                   // ),
                                   GestureDetector(
                                     onTap: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  buildingUnits()));
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => buildingUnits()));
                                     },
                                     child: Container(
                                       width: 200,
@@ -230,40 +203,31 @@ class _DashboardPage extends State<DashboardPage> {
                                         borderRadius: BorderRadius.circular(5),
                                       ),
                                       child: const Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           Image(
-                                            image: AssetImage(
-                                                'assets/updatedatabase.png'),
+                                            image: AssetImage('assets/updatedatabase.png'),
                                             fit: BoxFit.cover,
                                           ),
                                           Text(
                                             'Update Building',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 17),
+                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  _cardContainer(
-                                      2, "Message", "assets/message.png"),
-                                  _cardContainer(6, "Manage User",
-                                      "assets/manageuser.png"),
+                                  _cardContainer(2, "Message", "assets/message.png"),
+                                  _cardContainer(6, "Manage User", "assets/manageuser.png"),
                                 ],
                               ),
                           if (widget.type == 'Admin')
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _cardContainer(
-                                    1, "Announce", "assets/announce.png"),
-                                _cardContainer(
-                                    2, "Message", "assets/message.png"),
-                                _cardContainer(
-                                    3, "Request", "assets/request.png"),
+                                _cardContainer(1, "Announce", "assets/announce.png"),
+                                _cardContainer(2, "Message", "assets/message.png"),
+                                _cardContainer(3, "Request", "assets/request.png"),
                               ],
                             ),
                           const SizedBox(
@@ -272,17 +236,11 @@ class _DashboardPage extends State<DashboardPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              if (widget.type == 'Admin')
-                                _cardContainer(4, "Rental Record",
-                                    "assets/salesrecord.png"),
+                              if (widget.type == 'Admin') _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
-                              if (widget.type == 'Admin')
-                                _cardContainer(6, "Account Management ",
-                                    "assets/manageuser.png"),
-                              _cardContainer(7, "Units", "assets/house2.png"),
-                              _cardContainer(
-                                  8, "Archive", "assets/archive.png"),
+                              if (widget.type == 'Admin') _cardContainer(7, "Units", "assets/house2.png"),
+                              _cardContainer(8, "Archive", "assets/archive.png"),
                             ],
                           ),
                         ],
@@ -330,8 +288,7 @@ class _DashboardPage extends State<DashboardPage> {
               ),
               Text(
                 label,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
               ),
             ],
           ),
