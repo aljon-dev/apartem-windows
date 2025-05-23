@@ -239,7 +239,9 @@ class _DashboardPage extends State<DashboardPage> {
                               if (widget.type == 'Admin') _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
-                              if (widget.type == 'Admin') _cardContainer(7, "Units", "assets/house2.png"),
+
+                              _cardContainer(3, "Request", "assets/request.png"),
+                              _cardContainer(7, "Units", "assets/house2.png"),
                               _cardContainer(8, "Archive", "assets/archive.png"),
                             ],
                           ),
@@ -296,7 +298,7 @@ class _DashboardPage extends State<DashboardPage> {
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) {
             if (id == 1) {
-              return AnnouncePage(uid: widget.uid, type: widget.type);
+              return announcementPage();
             } else if (id == 2) {
               return messagePage(
                 userid: widget.uid,
@@ -322,7 +324,7 @@ class _DashboardPage extends State<DashboardPage> {
             } else if (id == 10) {
               return ManageUserPage(uid: widget.uid, type: widget.type);
             } else {
-              return AnnouncePage(uid: widget.uid, type: widget.type);
+              return announcementPage();
             }
           }));
         });
