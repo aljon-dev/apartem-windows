@@ -246,7 +246,7 @@ class _TenantPageState extends State<TenantPage> {
                         });
 
                         // Update unit occupancy status
-                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: selectedUnitNumber).where('building#', isEqualTo: widget.buildingnumber).get();
+                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber.toString())).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
 
                         if (unitQuery.docs.isNotEmpty) {
                           await unitQuery.docs.first.reference.update({'isOccupied': true});
@@ -1049,7 +1049,7 @@ class _TenantPageState extends State<TenantPage> {
 
                                                   await FirebaseFirestore.instance.collection('tenant').doc(doc.id).delete();
 
-                                                  final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: userunitnumber).where('building#', isEqualTo: widget.buildingnumber).get();
+                                                  final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
 
                                                   for (var unitDoc in unitQuery.docs) {
                                                     await FirebaseFirestore.instance.collection('UnitNumber').doc(unitDoc.id).update({
