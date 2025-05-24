@@ -444,11 +444,21 @@ class _ArchivePageState extends State<ArchivePage> {
                             'lastname': _lastNameController.text.trim(),
                             'middlename': _middleNameController.text.trim(),
                             'contactnumber': _contactNumberController.text.trim(),
-                            'buildingnumber': int.tryParse(selectedBuilding ?? '0') ?? 0,
-                            'unitnumber': int.tryParse(selectedUnit ?? '0') ?? 0,
-                            'rentalfee': double.tryParse(_rentalFeeController.text) ?? 0,
+                            'buildingnumber': selectedBuilding ?? '0',
+                            'password': '123456789',
+                            'unitnumber': selectedUnit ?? '0',
+                            'rentalfee': int.tryParse(_rentalFeeController.text) ?? 0,
                             'username': _usernameController.text.trim(),
                           };
+
+                          FirebaseFirestore.instance.collection('tenant').doc(tenantId).set(updatedTenantData);
+
+                          FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
+                          final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnit.toString())).where('building#', isEqualTo: int.tryParse(selectedBuilding.toString())).get();
+
+                          if (unitQuery.docs.isNotEmpty) {
+                            await unitQuery.docs.first.reference.update({'isOccupied': true});
+                          }
 
                           Navigator.pop(context);
                         }
