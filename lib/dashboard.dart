@@ -219,6 +219,7 @@ class _DashboardPage extends State<DashboardPage> {
                                   ),
                                   _cardContainer(2, "Message", "assets/message.png"),
                                   _cardContainer(6, "Manage User", "assets/manageuser.png"),
+                                  _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                                 ],
                               ),
                           if (widget.type == 'Admin')
@@ -236,7 +237,6 @@ class _DashboardPage extends State<DashboardPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              if (widget.type == 'Admin') _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
                               _cardContainer(1, "Announce", "assets/announce.png"),

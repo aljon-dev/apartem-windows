@@ -1,6 +1,8 @@
 import 'package:bogsandmila/borrowkeys.dart';
 import 'package:bogsandmila/logo.dart';
 import 'package:bogsandmila/maintenancerequest.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 class RequestPage extends StatefulWidget {
@@ -16,6 +18,8 @@ class RequestPage extends StatefulWidget {
 }
 
 class _RequestPage extends State<RequestPage> {
+  final FirebaseFirestore _fireStore = FirebaseFirestore.instance;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,7 +78,7 @@ class _RequestPage extends State<RequestPage> {
                                     color: const Color(0xddF6F6F4),
                                     borderRadius: BorderRadius.circular(5),
                                   ),
-                                  child: const Column(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Image(
@@ -88,12 +92,24 @@ class _RequestPage extends State<RequestPage> {
                                         'Maintenance Request',
                                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                       ),
+                                      StreamBuilder(
+                                        stream: _fireStore.collection('maintenance_request').where('status', isEqualTo: 'pending').snapshots(),
+                                        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                          if (snapshot.hasData) {
+                                            return Text(
+                                              'Number of Request: ${snapshot.data!.docs.length}',
+                                              style: const TextStyle(fontSize: 14),
+                                            );
+                                          } else {
+                                            return const Text(
+                                              'Number of Request: 0',
+                                              style: TextStyle(fontSize: 14),
+                                            );
+                                          }
+                                        },
+                                      ),
                                       SizedBox(
                                         height: 10,
-                                      ),
-                                      Text(
-                                        'Number of Request: 2',
-                                        style: TextStyle(fontSize: 14),
                                       ),
                                     ],
                                   ),
@@ -114,7 +130,7 @@ class _RequestPage extends State<RequestPage> {
                                     color: const Color(0xddF6F6F4),
                                     borderRadius: BorderRadius.circular(5),
                                   ),
-                                  child: const Column(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Image(
@@ -128,13 +144,21 @@ class _RequestPage extends State<RequestPage> {
                                         'Borrow Keys',
                                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                       ),
-                                      SizedBox(
-                                        height: 10,
-                                      ),
-                                      Text(
-                                        'Number of Request: 2',
-                                        style: TextStyle(fontSize: 14),
-                                      ),
+                                      StreamBuilder(
+                                          stream: _fireStore.collection('borrow_keys').where('status', isEqualTo: 'pending').snapshots(),
+                                          builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                            if (snapshot.hasData) {
+                                              return Text(
+                                                'Number of Request: ${snapshot.data!.docs.length}',
+                                                style: const TextStyle(fontSize: 14),
+                                              );
+                                            } else {
+                                              return const Text(
+                                                'Number of Request: 0',
+                                                style: TextStyle(fontSize: 14),
+                                              );
+                                            }
+                                          }),
                                     ],
                                   ),
                                 ),
