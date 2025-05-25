@@ -218,7 +218,7 @@ class _DashboardPage extends State<DashboardPage> {
                                     ),
                                   ),
                                   _cardContainer(2, "Message", "assets/message.png"),
-                                  _cardContainer(6, "Manage User", "assets/manageuser.png"),
+                                  _cardContainer(6, "Manage Admin User", "assets/manageuser.png"),
                                   _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                                 ],
                               ),
@@ -239,8 +239,8 @@ class _DashboardPage extends State<DashboardPage> {
                             children: [
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
-                              _cardContainer(1, "Announce", "assets/announce.png"),
-                              _cardContainer(3, "Request", "assets/request.png"),
+                              if (widget.type == 'Super Admin') _cardContainer(1, "Announce", "assets/announce.png"),
+                              if (widget.type == 'Super Admin') _cardContainer(3, "Request", "assets/request.png"),
                               _cardContainer(7, "Units", "assets/house2.png"),
                               _cardContainer(8, "Archive", "assets/archive.png"),
                             ],

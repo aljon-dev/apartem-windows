@@ -99,7 +99,7 @@ class _buildingUnits extends State<buildingUnits> {
         });
   }
 
-  Future<void> EditShowData(String BuildingId) async {
+  Future<void> EditShowData(String BuildingId, String BuildingNumber) async {
     final List<String> UnitType = [
       'Studio Type',
       'Bedroom Type',
@@ -113,7 +113,7 @@ class _buildingUnits extends State<buildingUnits> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Building Unit'),
+          title: Text('Edit Building Unit ${BuildingNumber}'),
           // Using Container with fixed height instead of Column with Expanded
           content: Container(
               width: double.maxFinite,
@@ -162,17 +162,19 @@ class _buildingUnits extends State<buildingUnits> {
                                   _Snackbar('Unit Number Already Exists', Colors.red, context);
                                   return;
                                 } else {
-                                  _firestore.collection('UnitNumber').add({
-                                    'buildingId': BuildingId,
-                                    'unitNumber': int.parse(newUnitNumberController.text),
-                                    'unitType': newUnitTypeController.text,
-                                    'isOccupied': false,
-                                  }).then((_) {
-                                    _Snackbar('Unit Added', Colors.green, context);
-                                    Navigator.pop(context);
-                                  }).catchError((error) {
-                                    _Snackbar('Failed to add the unit', Colors.red, context);
-                                  });
+                                  _firestore
+                                      .collection('UnitNumber')
+                                      .add({
+                                        'buildingId': BuildingId,
+                                        'unitNumber': int.parse(newUnitNumberController.text),
+                                        'unitType': newUnitTypeController.text,
+                                        'isOccupied': false,
+                                      })
+                                      .then((_) {})
+                                      .catchError((error) {
+                                        _Snackbar('Failed to add the unit', Colors.red, context);
+                                      });
+                                  Navigator.pop(context);
                                 }
                               }
                             },
@@ -366,22 +368,40 @@ class _buildingUnits extends State<buildingUnits> {
                 style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.red),
               ),
               TextButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    // First, validate all fields
+                    bool hasEmptyFields = false;
                     for (int i = 0; i < _BuildingUnits; i++) {
-                      if (buildingUnitNumber[i].text.isEmpty || dropdownValues[i] == '') {
-                        _Snackbar('Please Fill All Fields', Colors.red, context);
-                        Navigator.pop(context);
-                      } else {
-                        _firestore.collection('UnitNumber').add({
+                      if (buildingUnitNumber[i].text.isEmpty || dropdownValues[i] == null || dropdownValues[i] == '') {
+                        hasEmptyFields = true;
+                        break;
+                      }
+                    }
+
+                    if (hasEmptyFields) {
+                      _Snackbar('Please Fill All Fields', Colors.red, context);
+                      return; // Exit without closing dialog
+                    }
+
+                    // If validation passes, save all units
+                    try {
+                      for (int i = 0; i < _BuildingUnits; i++) {
+                        await _firestore.collection('UnitNumber').add({
                           'buildingId': key,
                           'unitNumber': int.parse(buildingUnitNumber[i].text),
                           'unitType': dropdownValues[i],
                           'isOccupied': false,
                           'building#': BuildingNumber,
                         });
-                        _Snackbar('Unit Added', Colors.green, context);
                       }
+
+                      // Show success message only once after all units are saved
+                      _Snackbar('All Units Added Successfully', Colors.green, context);
                       Navigator.pop(context);
+                      Navigator.pop(context);
+                    } catch (e) {
+                      // Handle any errors during saving
+                      _Snackbar('Error saving units: $e', Colors.red, context);
                     }
                   },
                   icon: const Icon(Icons.save),
@@ -439,7 +459,7 @@ class _buildingUnits extends State<buildingUnits> {
               ),
             ),
             StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('building').snapshots(),
+                stream: _firestore.collection('building').orderBy('building').snapshots(),
                 builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.hasError) {
                     return const Center(child: Text('Error'));
@@ -464,7 +484,7 @@ class _buildingUnits extends State<buildingUnits> {
                                 IconButton(
                                   icon: const Icon(Icons.edit),
                                   onPressed: () {
-                                    EditShowData(buildingData.id);
+                                    EditShowData(buildingData.id, buildingData['building'].toString());
                                   },
                                 ),
                                 IconButton(

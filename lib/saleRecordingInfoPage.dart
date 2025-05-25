@@ -1,3 +1,4 @@
+import 'package:bogsandmila/TransactionDetailsPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -91,60 +92,6 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
   void initState() {
     super.initState();
     getAnnualComputation();
-  }
-
-  Future<void> ViewProof(String imageUrl) async {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            width: double.infinity,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Proof of Image',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                imageUrl.isEmpty
-                    ? const Text(
-                        'No Image Proof Found',
-                        style: TextStyle(color: Colors.grey),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          imageUrl,
-                          height: 250,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close),
-                  label: Text('Close'),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Future<void> sendMonthlyBills() async {
@@ -272,14 +219,14 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
 
                         await _firestore.collection('sales_record').add({
                           'datetime': formattedDateTime,
-                          'due_date': formattedDueDate, // Add formatted due date
+                          'due_date': formattedDueDate,
+                          'imageUrl': '',
                           'month': selectedMonth,
                           'payer_name': '',
                           'rental_cost': rentalFee.text,
                           'status': 'pending',
                           'uid': widget.uid,
                           'year': selectedYear,
-                          'imageUrl': '',
                         });
 
                         Navigator.of(context).pop();
@@ -352,7 +299,118 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                             return Card(
                               child: InkWell(
                                 onTap: () {
-                                  ViewProof(salelist.proofUrl);
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text("${salelist.month} ${salelist.year}"),
+                                        content: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Center(
+                                                child: Icon(
+                                                  salelist.status.toLowerCase() == 'paid'
+                                                      ? Icons.check_circle
+                                                      : salelist.status.toLowerCase() == 'under review'
+                                                          ? Icons.hourglass_top
+                                                          : Icons.cancel,
+                                                  size: 60,
+                                                  color: salelist.status.toLowerCase() == 'paid'
+                                                      ? Colors.green
+                                                      : salelist.status.toLowerCase() == 'under review'
+                                                          ? Colors.orange
+                                                          : Colors.red,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              Text("Date: ${salelist.datetime}"),
+                                              Text("Payer Name: ${salelist.payer_name.isEmpty ? "N/A" : salelist.payer_name}"),
+                                              Text("Amount: ₱ ${salelist.rental_cost}"),
+                                              Text("Status: ${salelist.status}"),
+                                              const SizedBox(height: 10),
+                                              const Divider(),
+                                              const SizedBox(height: 10),
+                                              salelist.proofUrl.isNotEmpty && salelist.proofUrl != "N/A"
+                                                  ? Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        const Text("Proof of Payment:", style: TextStyle(fontWeight: FontWeight.bold)),
+                                                        const SizedBox(height: 8),
+                                                        ClipRRect(
+                                                          borderRadius: BorderRadius.circular(10),
+                                                          child: GestureDetector(
+                                                            onTap: () {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (_) => FullScreenImageViewer(imageUrl: salelist.proofUrl),
+                                                                ),
+                                                              );
+                                                            },
+                                                            child: ClipRRect(
+                                                              borderRadius: BorderRadius.circular(10),
+                                                              child: Image.network(
+                                                                salelist.proofUrl,
+                                                                height: 200,
+                                                                fit: BoxFit.cover,
+                                                                errorBuilder: (context, error, stackTrace) => const Text("Image failed to load"),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : const Text("No proof of payment uploaded."),
+                                            ],
+                                          ),
+                                        ),
+                                        actions: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              ElevatedButton.icon(
+                                                onPressed: () async {
+                                                  // UPDATE STATUS TO UNPAID
+                                                  await _firestore.collection('sales_record').doc(salelist.id).update({
+                                                    'status': 'unpaid',
+                                                  });
+                                                  Navigator.of(context).pop();
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text("Status updated to Unpaid")),
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.cancel),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                label: const Text("Unpaid"),
+                                              ),
+                                              ElevatedButton.icon(
+                                                onPressed: () async {
+                                                  // UPDATE STATUS TO PAID
+                                                  await _firestore.collection('sales_record').doc(salelist.id).update({
+                                                    'status': 'paid',
+                                                  });
+                                                  Navigator.of(context).pop();
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text("Status updated to Paid")),
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.check),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.green,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                label: const Text("Paid"),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 },
                                 child: Padding(
                                     padding: const EdgeInsets.all(16),

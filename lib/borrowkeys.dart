@@ -57,6 +57,26 @@ class _borrowKeyPageState extends State<borrowKeypage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 1024;
+    final isTablet = screenWidth > 600 && screenWidth <= 1024;
+
+    // Responsive grid configuration
+    int crossAxisCount;
+    double childAspectRatio;
+    double maxCardWidth = 450; // Maximum card width for desktop
+
+    if (isDesktop) {
+      crossAxisCount = (screenWidth / maxCardWidth).floor().clamp(3, 6);
+      childAspectRatio = 1.1; // Slightly wider than tall for desktop
+    } else if (isTablet) {
+      crossAxisCount = 3;
+      childAspectRatio = 0.9;
+    } else {
+      crossAxisCount = 2;
+      childAspectRatio = 0.1;
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -73,7 +93,7 @@ class _borrowKeyPageState extends State<borrowKeypage> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isDesktop ? 32 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -81,6 +101,7 @@ class _borrowKeyPageState extends State<borrowKeypage> {
               children: [
                 Icon(Icons.door_sliding),
                 Icon(Icons.key),
+                SizedBox(width: 8),
                 Text(
                   'Borrow Keys',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -112,62 +133,93 @@ class _borrowKeyPageState extends State<borrowKeypage> {
                   }
 
                   return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.7,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: isDesktop ? 16 : 10,
+                      mainAxisSpacing: isDesktop ? 16 : 10,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemCount: borrowers.length,
                     itemBuilder: (context, index) {
                       final borrower = borrowers[index];
                       return Card(
-                        elevation: 3,
+                        elevation: 2,
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(isDesktop ? 10 : 16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min, // Important: Let content determine height
                             children: [
                               Text(
                                 borrower.mainAcountUser == 'Sub_Tenant' ? 'Sub-Tenant' : borrower.mainAcountUser,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                               Text(
                                 borrower.name,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: isDesktop ? 20 : 12),
                               Text(
                                 'Building: ${borrower.buildingnumber}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 'Unit: ${borrower.unitnumber}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 'For: ${borrower.forWho}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: isDesktop ? 20 : 8),
                               Text(
                                 'Requested: ${DateFormat('MMM d, yyyy h:mm a').format(borrower.timestamp!.toDate().toLocal())}',
-                                style: const TextStyle(
-                                  fontSize: 14,
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 20 : 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF333333),
+                                  color: const Color(0xFF333333),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Remarks:',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                              ),
+                              SizedBox(height: isDesktop ? 20 : 8),
                               Text(
-                                borrower.remarks,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                'Remarks:',
+                                style: TextStyle(
+                                  fontSize: isDesktop ? 15 : 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                              const SizedBox(height: 16),
+                              Expanded(
+                                child: Text(
+                                  borrower.remarks,
+                                  style: TextStyle(
+                                    fontSize: isDesktop ? 20 : 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: isDesktop ? 4 : 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(height: isDesktop ? 15 : 16),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -191,10 +243,13 @@ class _borrowKeyPageState extends State<borrowKeypage> {
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(5),
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        padding: EdgeInsets.symmetric(vertical: isDesktop ? 6 : 8),
                                       ),
-                                      icon: const Icon(Icons.close, size: 18),
-                                      label: const Text('Reject', style: TextStyle(fontSize: 14)),
+                                      icon: Icon(Icons.close, size: isDesktop ? 16 : 18),
+                                      label: Text(
+                                        'Reject',
+                                        style: TextStyle(fontSize: isDesktop ? 16 : 14),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -218,10 +273,13 @@ class _borrowKeyPageState extends State<borrowKeypage> {
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(5),
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        padding: EdgeInsets.symmetric(vertical: isDesktop ? 6 : 8),
                                       ),
-                                      icon: const Icon(Icons.check, size: 18),
-                                      label: const Text('Accept', style: TextStyle(fontSize: 14)),
+                                      icon: Icon(Icons.check, size: isDesktop ? 16 : 18),
+                                      label: Text(
+                                        'Accept',
+                                        style: TextStyle(fontSize: isDesktop ? 16 : 14),
+                                      ),
                                     ),
                                   ),
                                 ],

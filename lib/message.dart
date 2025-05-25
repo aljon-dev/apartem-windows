@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class messagePage extends StatefulWidget {
   final String userid;
@@ -64,9 +65,7 @@ class _messagePageState extends State<messagePage> {
                 // Filter tenants based on search query
                 final filteredTenants = snapshot.data!.docs.where((tenant) {
                   final tenantData = tenant.data() as Map<String, dynamic>;
-                  final fullName =
-                      '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}'
-                          .toLowerCase();
+                  final fullName = '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}'.toLowerCase();
                   return fullName.contains(_searchQuery);
                 }).toList();
 
@@ -77,33 +76,21 @@ class _messagePageState extends State<messagePage> {
                     final tenantData = tenant.data() as Map<String, dynamic>;
 
                     return StreamBuilder<QuerySnapshot>(
-                      stream: _firestore
-                          .collection('messages')
-                          .where('participants', arrayContains: tenant.id)
-                          .orderBy('timestamp', descending: true)
-                          .limit(1)
-                          .snapshots(),
+                      stream: _firestore.collection('messages').where('participants', arrayContains: tenant.id).orderBy('timestamp', descending: true).limit(1).snapshots(),
                       builder: (context, messageSnapshot) {
                         String lastMessage = '';
                         bool hasUnread = false;
                         DateTime? lastMessageTime;
 
-                        if (messageSnapshot.hasData &&
-                            messageSnapshot.data!.docs.isNotEmpty) {
-                          final lastMessageData =
-                              messageSnapshot.data!.docs.first.data()
-                                  as Map<String, dynamic>;
+                        if (messageSnapshot.hasData && messageSnapshot.data!.docs.isNotEmpty) {
+                          final lastMessageData = messageSnapshot.data!.docs.first.data() as Map<String, dynamic>;
                           lastMessage = lastMessageData['message'] ?? '';
-                          hasUnread = !(lastMessageData['isRead'] ?? true) &&
-                              (lastMessageData['receiverId'] == widget.userid ||
-                                  lastMessageData['senderId'] == widget.userid);
-                          lastMessageTime =
-                              lastMessageData['timestamp']?.toDate();
+                          hasUnread = !(lastMessageData['isRead'] ?? true) && (lastMessageData['receiverId'] == widget.userid || lastMessageData['senderId'] == widget.userid);
+                          lastMessageTime = lastMessageData['timestamp']?.toDate();
                         }
 
                         return Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Colors.blue.shade100,
@@ -114,16 +101,13 @@ class _messagePageState extends State<messagePage> {
                             ),
                             title: Text(
                               '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  lastMessage.isEmpty
-                                      ? 'No messages yet'
-                                      : lastMessage,
+                                  lastMessage.isEmpty ? 'No messages yet' : lastMessage,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -151,10 +135,8 @@ class _messagePageState extends State<messagePage> {
                                   builder: (context) => ChatScreen(
                                     adminId: widget.userid,
                                     tenantId: tenant.id,
-                                    tenantName:
-                                        '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
-                                    buildingnumber:
-                                        tenantData['buildingnumber'],
+                                    tenantName: '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
+                                    buildingnumber: tenantData['buildingnumber'],
                                     unitnumber: tenantData['unitnumber'],
                                   ),
                                 ),
@@ -190,14 +172,7 @@ class ChatScreen extends StatefulWidget {
   final String buildingnumber;
   final String unitnumber;
 
-  const ChatScreen(
-      {Key? key,
-      required this.adminId,
-      required this.tenantId,
-      required this.tenantName,
-      required this.buildingnumber,
-      required this.unitnumber})
-      : super(key: key);
+  const ChatScreen({Key? key, required this.adminId, required this.tenantId, required this.tenantName, required this.buildingnumber, required this.unitnumber}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -250,9 +225,35 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+
+    final now = DateTime.now();
+    final messageTime = timestamp.toDate();
+    final localTime = messageTime.toLocal();
+
+    // Check if message is from today
+    if (DateFormat('yyyy-MM-dd').format(now) == DateFormat('yyyy-MM-dd').format(localTime)) {
+      return DateFormat('h:mm a').format(localTime); // Show only time for today
+    }
+    // Check if message is from yesterday
+    else if (now.difference(localTime).inDays == 1) {
+      return 'Yesterday ${DateFormat('h:mm a').format(localTime)}';
+    }
+    // Check if message is from this week
+    else if (now.difference(localTime).inDays < 7) {
+      return DateFormat('EEEE h:mm a').format(localTime); // Show day name and time
+    }
+    // Show full date for older messages
+    else {
+      return DateFormat('MMM d, yyyy h:mm a').format(localTime);
+    }
+  }
+
   @override
   void dispose() {
-    _searchController.dispose();
+    _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -263,7 +264,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: _isSearching
             ? TextField(
                 controller: _searchController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Search messages...',
                   border: InputBorder.none,
                 ),
@@ -275,8 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
               )
             : ListTile(
                 title: Text(widget.tenantName),
-                subtitle: Text(
-                    'Bldg: ${widget.buildingnumber} unit:${widget.unitnumber}'),
+                subtitle: Text('Bldg: ${widget.buildingnumber} unit:${widget.unitnumber}'),
               ),
         actions: [
           IconButton(
@@ -297,11 +297,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('messages')
-                  .where('participants', arrayContains: widget.tenantId)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
+              stream: _firestore.collection('messages').where('participants', arrayContains: widget.tenantId).orderBy('timestamp', descending: true).snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -313,11 +309,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 final messages = snapshot.data!.docs.where((doc) {
                   final message = doc.data() as Map<String, dynamic>;
-                  return _searchQuery.isEmpty ||
-                      message['message']
-                          .toString()
-                          .toLowerCase()
-                          .contains(_searchQuery);
+                  return _searchQuery.isEmpty || message['message'].toString().toLowerCase().contains(_searchQuery);
                 }).toList();
 
                 return ListView.builder(
@@ -325,34 +317,47 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final message =
-                        messages[index].data() as Map<String, dynamic>;
+                    final message = messages[index].data() as Map<String, dynamic>;
                     final isMe = message['senderId'] == adminId;
+                    final timestamp = message['timestamp'] as Timestamp?;
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: isMe
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.7,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isMe ? Colors.blue : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                          Row(
+                            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            children: [
+                              Container(
+                                constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width * 0.7,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isMe ? Colors.blue : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  message['message'],
+                                  style: TextStyle(
+                                    color: isMe ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              message['message'],
+                              _formatTimestamp(timestamp),
                               style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black,
+                                fontSize: 11,
+                                color: Colors.grey[600],
                               ),
                             ),
                           ),

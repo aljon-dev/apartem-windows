@@ -30,7 +30,6 @@ class _TenantPageState extends State<TenantPage> {
 
   String vacantValue = 'Yes';
   String? paymentValue;
-
   Future<void> _AssignTenantUserBuilding(int buildingNumber) async {
     // Form controllers
     final TextEditingController firstNameController = TextEditingController();
@@ -43,12 +42,15 @@ class _TenantPageState extends State<TenantPage> {
 
     String? selectedUnitNumber;
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+    bool isShowPassword = false;
 
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
+            // Move this inside but make it a state variable
+
             return AlertDialog(
               title: const Text('Assign Tenant User Building'),
               content: SingleChildScrollView(
@@ -160,13 +162,23 @@ class _TenantPageState extends State<TenantPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Password Field
+                      // Password Field - FIXED
                       TextFormField(
                         controller: passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: !isShowPassword, // Fixed logic
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              setState(() {
+                                isShowPassword = !isShowPassword;
+                              });
+                            },
+                            icon: Icon(
+                              isShowPassword ? Icons.visibility : Icons.visibility_off,
+                            ),
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -196,6 +208,7 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
+
                       TextFormField(
                         controller: rentalFeeController,
                         keyboardType: TextInputType.number,
@@ -246,7 +259,11 @@ class _TenantPageState extends State<TenantPage> {
                         });
 
                         // Update unit occupancy status
-                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber.toString())).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
+                        final unitQuery = await FirebaseFirestore.instance
+                            .collection('UnitNumber')
+                            .where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber.toString()))
+                            .where('building#', isEqualTo: buildingNumber) // Fixed: use buildingNumber parameter directly
+                            .get();
 
                         if (unitQuery.docs.isNotEmpty) {
                           await unitQuery.docs.first.reference.update({'isOccupied': true});
@@ -293,6 +310,7 @@ class _TenantPageState extends State<TenantPage> {
       usernameController.dispose();
       passwordController.dispose();
       contactController.dispose();
+      rentalFeeController.dispose(); // Added missing dispose
     });
   }
 
@@ -753,21 +771,39 @@ class _TenantPageState extends State<TenantPage> {
                                         ),
                                       ),
 
-                                    // Add Tenant Button
-                                    ElevatedButton.icon(
-                                      onPressed: () => _AssignTenantUserBuilding(int.parse(widget.buildingnumber)),
-                                      icon: const Icon(Icons.person_add, size: 20),
-                                      label: const Text('Add Tenant'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue[600],
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                      ),
+                                    StreamBuilder<QuerySnapshot>(
+                                      stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.parse(widget.buildingnumber)).where('isOccupied', isEqualTo: false).snapshots(),
+                                      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                        if (snapshot.hasError) {
+                                          return const Text('Something went wrong');
+                                        }
+                                        if (snapshot.connectionState == ConnectionState.waiting) {
+                                          return const Center(child: CircularProgressIndicator());
+                                        }
+                                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                          return const Text('No available units');
+                                        }
+
+                                        final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                                        final hasAvailableUnits = unitNumbers.isNotEmpty;
+
+                                        return ElevatedButton.icon(
+                                          onPressed: hasAvailableUnits ? () => _AssignTenantUserBuilding(int.parse(widget.buildingnumber)) : null,
+                                          icon: const Icon(Icons.person_add, size: 20),
+                                          label: const Text('Add Tenant'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: hasAvailableUnits ? Colors.blue[600] : Colors.grey[400],
+                                            foregroundColor: hasAvailableUnits ? Colors.white : Colors.grey[600],
+                                            elevation: hasAvailableUnits ? 2 : 0,
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
+                                    // Add Tenant Button
                                   ],
                                 ),
 

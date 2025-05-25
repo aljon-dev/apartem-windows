@@ -4,20 +4,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class AdminAccountPage extends StatefulWidget {
-  final uid;
-  final type;
+  final String uid;
+  final String type;
   const AdminAccountPage({super.key, required this.uid, required this.type});
 
   @override
-  _AdminAccountPage createState() => _AdminAccountPage();
+  _AdminAccountPageState createState() => _AdminAccountPageState();
 }
 
-class _AdminAccountPage extends State<AdminAccountPage> {
-  late TextEditingController username = TextEditingController();
-  late TextEditingController password = TextEditingController();
+class _AdminAccountPageState extends State<AdminAccountPage> {
+  late TextEditingController usernameController = TextEditingController();
+  late TextEditingController passwordController = TextEditingController();
   final int _rowsPerPage = 10;
   int _currentPage = 0;
   String? selectedValue;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  bool isShowPassword = false;
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +52,7 @@ class _AdminAccountPage extends State<AdminAccountPage> {
                     child: Align(
                       alignment: Alignment.topLeft,
                       child: TextButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
+                        onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.arrow_back, color: Colors.black),
                         label: const Text(
                           'Back',
@@ -90,70 +98,52 @@ class _AdminAccountPage extends State<AdminAccountPage> {
                   const SizedBox(height: 20),
                   SizedBox(
                     width: 700,
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _formContainer("Username:", username),
-                            _formContainer("Password:", password),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              Container(
-                                margin: const EdgeInsets.only(right: 22),
-                                width: 200,
-                                height: 40,
-                                padding: const EdgeInsets.all(0),
-                                decoration: BoxDecoration(
-                                  color: const Color.fromARGB(228, 12, 12, 12),
-                                  borderRadius: BorderRadius.circular(5),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x661E1E1E),
-                                      offset: Offset(0, 2),
-                                      blurRadius: 10.0,
-                                      spreadRadius: 1.0,
-                                    ),
-                                  ],
-                                ),
-                                child: TextButton(
-                                  onPressed: () {
-                                    if (username.text.isEmpty || password.text.isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Please fill all fields!'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      return;
-                                    }
-
-                                    Services().AdminAccount(username.text, password.text);
-                                    username.clear();
-                                    password.clear();
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Account created successfully!'),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text(
-                                    'Register Account',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              )
+                              _buildUsernameField(),
+                              _buildPasswordField(),
                             ],
                           ),
-                        )
-                      ],
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(right: 22),
+                                  width: 200,
+                                  height: 40,
+                                  padding: const EdgeInsets.all(0),
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromARGB(228, 12, 12, 12),
+                                    borderRadius: BorderRadius.circular(5),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x661E1E1E),
+                                        offset: Offset(0, 2),
+                                        blurRadius: 10.0,
+                                        spreadRadius: 1.0,
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextButton(
+                                    onPressed: _registerAdminAccount,
+                                    child: const Text(
+                                      'Register Account',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -279,29 +269,150 @@ class _AdminAccountPage extends State<AdminAccountPage> {
     );
   }
 
+  Widget _buildUsernameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Username:',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          padding: const EdgeInsets.only(left: 10),
+          width: 300,
+          height: 45,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(width: 1, color: const Color(0xddDADADA)),
+          ),
+          child: TextFormField(
+            style: const TextStyle(fontSize: 13.0),
+            controller: usernameController,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              hintText: 'Enter username',
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a username';
+              }
+              return null;
+            },
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Password:',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          padding: const EdgeInsets.only(left: 10),
+          width: 300,
+          height: 45,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(width: 1, color: const Color(0xddDADADA)),
+          ),
+          child: TextFormField(
+            style: const TextStyle(fontSize: 13.0),
+            controller: passwordController,
+            obscureText: isShowPassword,
+            decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Enter password (min 8 chars)',
+                suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        isShowPassword = !isShowPassword;
+                      });
+                    },
+                    icon: Icon(isShowPassword ? Icons.visibility_off : Icons.visibility))),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a password';
+              }
+              if (value.length < 8) {
+                return 'Password must be at least 8 characters';
+              }
+              return null;
+            },
+          ),
+        )
+      ],
+    );
+  }
+
+  void _registerAdminAccount() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    Services().AdminAccount(usernameController.text, passwordController.text);
+    usernameController.clear();
+    passwordController.clear();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Account created successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   void _showEditDialog(QueryDocumentSnapshot doc) {
-    final usernameController = TextEditingController(text: doc['username']);
-    final passwordController = TextEditingController(text: doc['password']);
+    final editUsernameController = TextEditingController(text: doc['username']);
+    final editPasswordController = TextEditingController(text: doc['password']);
+    final editFormKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Edit Admin Account'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-            ],
+          content: Form(
+            key: editFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: editUsernameController,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a username';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: editPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    hintText: 'Minimum 8 characters',
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             ElevatedButton(
@@ -317,19 +428,13 @@ class _AdminAccountPage extends State<AdminAccountPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (usernameController.text.isEmpty || passwordController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill all fields!'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                if (!editFormKey.currentState!.validate()) {
                   return;
                 }
 
                 await doc.reference.update({
-                  'username': usernameController.text,
-                  'password': passwordController.text,
+                  'username': editUsernameController.text,
+                  'password': editPasswordController.text,
                 });
 
                 if (mounted) {
@@ -355,8 +460,8 @@ class _AdminAccountPage extends State<AdminAccountPage> {
         );
       },
     ).then((_) {
-      usernameController.dispose();
-      passwordController.dispose();
+      editUsernameController.dispose();
+      editPasswordController.dispose();
     });
   }
 
@@ -391,34 +496,6 @@ class _AdminAccountPage extends State<AdminAccountPage> {
           ],
         );
       },
-    );
-  }
-
-  Widget _formContainer(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-        ),
-        const SizedBox(height: 5),
-        Container(
-          padding: const EdgeInsets.only(left: 10),
-          width: 300,
-          height: 45,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(width: 1, color: const Color(0xddDADADA)),
-          ),
-          child: TextField(
-            style: const TextStyle(fontSize: 13.0),
-            controller: controller,
-            decoration: const InputDecoration(border: InputBorder.none),
-            obscureText: label == 'Password:',
-          ),
-        )
-      ],
     );
   }
 }

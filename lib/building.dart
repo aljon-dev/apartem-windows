@@ -79,7 +79,7 @@ class _BuildingPage extends State<BuildingPage> {
                           children: [
                             Expanded(
                               child: StreamBuilder<QuerySnapshot>(
-                                stream: _firestore.collection('building').snapshots(),
+                                stream: _firestore.collection('building').orderBy('building').snapshots(),
                                 builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
                                   if (snapshot.hasError) {
                                     return const Center(child: Text('Error'));
@@ -164,20 +164,38 @@ class _BuildingPage extends State<BuildingPage> {
                                                   ),
                                                   DataCell(
                                                     Container(
-                                                      width: availableWidth * 0.1, // 30% of available width
-                                                      child: Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: availability == 0 ? Colors.red[100] : Colors.green[100],
-                                                          borderRadius: BorderRadius.circular(4),
-                                                        ),
-                                                        child: Text(
-                                                          availability == 0 ? 'Not Available' : 'Available',
-                                                          style: TextStyle(
-                                                            color: availability == 0 ? Colors.red[900] : Colors.green[900],
-                                                          ),
-                                                        ),
-                                                      ),
+                                                      width: availableWidth * 0.1, // 10% of available width
+                                                      child: StreamBuilder<QuerySnapshot>(
+                                                          stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingName).where('isOccupied', isEqualTo: false).snapshots(),
+                                                          builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                                            if (!snapshot.hasData) {
+                                                              return Container(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.grey[100], // Loading state color
+                                                                  borderRadius: BorderRadius.circular(4),
+                                                                ),
+                                                                child: const Text(
+                                                                  'Loading...',
+                                                                  style: TextStyle(color: Colors.black),
+                                                                ),
+                                                              );
+                                                            }
+
+                                                            bool isAvailable = snapshot.data!.docs.isNotEmpty;
+
+                                                            return Container(
+                                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                              decoration: BoxDecoration(
+                                                                color: isAvailable ? Colors.green[100] : Colors.red[100],
+                                                                borderRadius: BorderRadius.circular(4),
+                                                              ),
+                                                              child: Text(
+                                                                isAvailable ? 'Available' : 'Not Available',
+                                                                style: const TextStyle(color: Colors.black),
+                                                              ),
+                                                            );
+                                                          }),
                                                     ),
                                                   ),
                                                   DataCell(
