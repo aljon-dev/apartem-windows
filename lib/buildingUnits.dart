@@ -380,8 +380,8 @@ class _buildingUnits extends State<buildingUnits> {
                           'building#': BuildingNumber,
                         });
                         _Snackbar('Unit Added', Colors.green, context);
-                        Navigator.pop(context);
                       }
+                      Navigator.pop(context);
                     }
                   },
                   icon: const Icon(Icons.save),
