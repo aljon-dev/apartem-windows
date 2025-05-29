@@ -27,19 +27,7 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
 
   String selectedValue = 'paid';
   String? selectedYear;
-  List<String> years = [
-    '2020',
-    '2021',
-    '2022',
-    '2023',
-    '2024',
-    '2025',
-    '2026',
-    '2027',
-    '2028',
-    '2029',
-    '2030'
-  ]; // Add more years as needed
+  List<String> years = ['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030']; // Add more years as needed
 
   // ignore: non_constant_identifier_names
   String tenant_name = "";
@@ -56,19 +44,14 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
 
   Future<void> fetchData() async {
     try {
-      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
-          .collection('tenant')
-          .doc(widget.tenant_id)
-          .get();
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance.collection('tenant').doc(widget.tenant_id).get();
 
       if (documentSnapshot.exists) {
         var userData = documentSnapshot.data() as Map<String, dynamic>?;
 
         if (userData != null) {
           setState(() {
-            tenant_name = (userData['firstname'] ?? '') +
-                " " +
-                (userData['lastname'] ?? '');
+            tenant_name = (userData['firstname'] ?? '') + " " + (userData['lastname'] ?? '');
             buildingnumber = userData['buildingnumber'] ?? '';
             unitnumber = userData['unitnumber'] ?? '';
             unitnumber = userData['unitnumber'] ?? '';
@@ -76,11 +59,7 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
         } else {}
       } else {}
 
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('sales_record')
-          .where('uid', isEqualTo: widget.tenant_id)
-          .where('year', isEqualTo: selectedYear)
-          .get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('sales_record').where('uid', isEqualTo: widget.tenant_id).where('year', isEqualTo: selectedYear).get();
 
       if (querySnapshot.docs.isNotEmpty) {
         // Initialize rental_cost to 0
@@ -92,9 +71,7 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
 
           if (userData != null) {
             // Check if 'rental_cost' is present and parse it
-            double rentalCost = (userData['rental_cost'] ?? 0.0) is double
-                ? userData['rental_cost'] as double
-                : double.tryParse(userData['rental_cost'].toString()) ?? 0.0;
+            double rentalCost = (userData['rental_cost'] ?? 0.0) is double ? userData['rental_cost'] as double : double.tryParse(userData['rental_cost'].toString()) ?? 0.0;
 
             // Add to totalRentalCost
             totalRentalCost += rentalCost;
@@ -142,12 +119,11 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    LogoPage(uid: widget.uid, type: widget.type),
+                    LogoPage(),
                     const SizedBox(height: 20),
                     Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 30),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 30),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -169,8 +145,7 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                   children: [
                                     SizedBox(
                                       height: 50,
-                                      width:
-                                          200, // Ensure it takes available width
+                                      width: 200, // Ensure it takes available width
                                       child: DropdownButtonFormField<String>(
                                         value: selectedYear,
                                         hint: const Text('Select Year'),
@@ -179,14 +154,11 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                         ),
                                         onChanged: (String? newValue) {
                                           setState(() {
-                                            selectedYear =
-                                                newValue; // Update the selected year
+                                            selectedYear = newValue; // Update the selected year
                                             fetchData();
                                           });
                                         },
-                                        items: years
-                                            .map<DropdownMenuItem<String>>(
-                                                (String year) {
+                                        items: years.map<DropdownMenuItem<String>>((String year) {
                                           return DropdownMenuItem<String>(
                                             value: year,
                                             child: Text(year),
@@ -201,17 +173,11 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                   children: [
                                     const Text(
                                       'Annual Collection Total: ',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15),
+                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                                     ),
                                     Text(
-                                      NumberFormat('#,##0.00')
-                                          .format(rental_cost),
-                                      style: const TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15),
+                                      NumberFormat('#,##0.00').format(rental_cost),
+                                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 15),
                                     ),
                                   ],
                                 ),
@@ -222,27 +188,18 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                         )),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('sales_record')
-                            .where('uid', isEqualTo: widget.tenant_id)
-                            .where('year', isEqualTo: selectedYear)
-                            .snapshots(),
+                        stream: FirebaseFirestore.instance.collection('sales_record').where('uid', isEqualTo: widget.tenant_id).where('year', isEqualTo: selectedYear).snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
-                            return const Center(
-                                child: Text('Something went wrong'));
+                            return const Center(child: Text('Something went wrong'));
                           }
                           if (!snapshot.hasData) {
-                            return const Center(
-                                child: CircularProgressIndicator());
+                            return const Center(child: CircularProgressIndicator());
                           }
 
                           final data = snapshot.data!.docs;
                           final startIndex = _currentPage * _rowsPerPage;
-                          final endIndex =
-                              (startIndex + _rowsPerPage < data.length)
-                                  ? startIndex + _rowsPerPage
-                                  : data.length;
+                          final endIndex = (startIndex + _rowsPerPage < data.length) ? startIndex + _rowsPerPage : data.length;
 
                           return Column(
                             children: [
@@ -279,17 +236,12 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                             onChanged: (String? newValue) {
                                               setState(() {
                                                 selectedValue = newValue!;
-                                                FirebaseFirestore.instance
-                                                    .collection('sales_record')
-                                                    .doc(doc.id)
-                                                    .update({
+                                                FirebaseFirestore.instance.collection('sales_record').doc(doc.id).update({
                                                   'status': selectedValue,
                                                 });
                                               });
                                             },
-                                            items: dropdownItems
-                                                .map<DropdownMenuItem<String>>(
-                                                    (String value) {
+                                            items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
                                               return DropdownMenuItem<String>(
                                                 value: value,
                                                 child: Text(value),
@@ -303,8 +255,7 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                 ),
                               ),
                               Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8.0),
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: List.generate(
@@ -318,12 +269,8 @@ class _TenantSalesRecordPageState extends State<TenantSalesRecordPage> {
                                           });
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: _currentPage == index
-                                              ? const Color(0xdd1E1E1E)
-                                              : Colors.white,
-                                          foregroundColor: _currentPage == index
-                                              ? Colors.white
-                                              : const Color(0xdd1E1E1E),
+                                          backgroundColor: _currentPage == index ? const Color(0xdd1E1E1E) : Colors.white,
+                                          foregroundColor: _currentPage == index ? Colors.white : const Color(0xdd1E1E1E),
                                         ),
                                         child: Text((index + 1).toString()),
                                       ),

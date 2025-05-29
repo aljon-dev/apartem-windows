@@ -8,12 +8,10 @@ import 'package:intl/intl.dart';
 
 class TenantPage extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
-  final uid;
-  // ignore: prefer_typing_uninitialized_variables
-  final type;
+
   // ignore: prefer_typing_uninitialized_variables
   final buildingnumber;
-  const TenantPage({super.key, required this.uid, required this.type, required this.buildingnumber});
+  const TenantPage({super.key, required this.buildingnumber});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -551,7 +549,7 @@ class _TenantPageState extends State<TenantPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    LogoPage(uid: widget.uid, type: widget.type),
+                    LogoPage(),
                     const SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),

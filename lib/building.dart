@@ -69,7 +69,7 @@ class _BuildingPage extends State<BuildingPage> {
                             ),
                           ),
                         )),
-                    LogoPage(uid: widget.uid, type: widget.type),
+                    LogoPage(),
                     const SizedBox(height: 20),
                     Expanded(
                       child: Container(
@@ -201,19 +201,7 @@ class _BuildingPage extends State<BuildingPage> {
                                                   DataCell(
                                                     SizedBox(
                                                       width: availableWidth * .1, // 20% of available width
-                                                      child: IconButton(
-                                                        icon: const Icon(Icons.info, color: Colors.blue),
-                                                        tooltip: 'View Details',
-                                                        onPressed: () {
-                                                          Navigator.push(context, MaterialPageRoute(builder: (context) {
-                                                            return TenantPage(
-                                                              uid: widget.uid,
-                                                              type: widget.type,
-                                                              buildingnumber: buildingName.toString(),
-                                                            );
-                                                          }));
-                                                        },
-                                                      ),
+                                                      child: IconButton(icon: const Icon(Icons.info, color: Colors.blue), tooltip: 'View Details', onPressed: () {}),
                                                     ),
                                                   ),
                                                 ],

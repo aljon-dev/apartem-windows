@@ -142,7 +142,7 @@ class _DashboardPage extends State<DashboardPage> {
                       ],
                     ),
                   ),
-                  LogoPage(uid: widget.uid, type: widget.type),
+                  LogoPage(),
                   const SizedBox(height: 30),
                   Container(
                     alignment: Alignment.center,
@@ -319,7 +319,7 @@ class _DashboardPage extends State<DashboardPage> {
             } else if (id == 7) {
               return BuildingPage(uid: widget.uid, type: widget.type);
             } else if (id == 8) {
-              return ArchivePage(uid: widget.uid, type: widget.type);
+              return ArchivePage();
             } else if (id == 9) {
               return AdminAccountPage(uid: widget.uid, type: widget.type);
             } else if (id == 10) {

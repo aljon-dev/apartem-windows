@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 class LogoPage extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
-  final uid;
-  // ignore: prefer_typing_uninitialized_variables
-  final type;
-  const LogoPage({super.key, required this.uid, required this.type});
+
+  const LogoPage({
+    super.key,
+  });
 
   @override
   // ignore: library_private_types_in_public_api
@@ -23,13 +23,7 @@ class _LogoPage extends State<LogoPage> {
             image: AssetImage('assets/logo.png'),
             fit: BoxFit.cover,
           ),
-          onTap: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        DashboardPage(uid: widget.uid, type: widget.type)));
-          },
+          onTap: () {},
         ));
   }
 }

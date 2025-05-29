@@ -18,13 +18,9 @@ class MessagePageOld extends StatefulWidget {
 class _MessagePageOld extends State<MessagePageOld> {
   final TextEditingController messageController = TextEditingController();
 
-  String? selectedValue =
-      ''; // Set the initial value as an empty string for 'Select Tenant'
+  String? selectedValue = ''; // Set the initial value as an empty string for 'Select Tenant'
   List<Map<String, String>> tenantsList = [
-    {
-      'uid': '',
-      'name': 'Select Tenant'
-    }, // Default option with a unique empty value
+    {'uid': '', 'name': 'Select Tenant'}, // Default option with a unique empty value
   ];
 
   @override
@@ -38,10 +34,7 @@ class _MessagePageOld extends State<MessagePageOld> {
     final tenants = await FirebaseFirestore.instance.collection('tenant').get();
 
     List<Map<String, String>> fetchedTenants = [
-      {
-        'uid': '',
-        'name': 'Select Tenant'
-      }, // Default option with a unique empty value
+      {'uid': '', 'name': 'Select Tenant'}, // Default option with a unique empty value
     ];
 
     for (var tenant in tenants.docs) {
@@ -74,7 +67,7 @@ class _MessagePageOld extends State<MessagePageOld> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  LogoPage(uid: widget.uid, type: widget.type),
+                  LogoPage(),
                   const SizedBox(height: 50),
                   Container(
                       alignment: Alignment.center,
@@ -91,8 +84,7 @@ class _MessagePageOld extends State<MessagePageOld> {
                           ),
                           Text(
                             'Message',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 23),
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
                           ),
                         ],
                       )),
@@ -130,13 +122,10 @@ class _MessagePageOld extends State<MessagePageOld> {
 
                                 // Use selectedValue as uid here
                               },
-                              items: tenantsList
-                                  .map<DropdownMenuItem<String>>((tenant) {
+                              items: tenantsList.map<DropdownMenuItem<String>>((tenant) {
                                 return DropdownMenuItem<String>(
-                                  value:
-                                      tenant['uid'], // Unique UID as the value
-                                  child: Text(tenant[
-                                      'name']!), // Display name as the dropdown label
+                                  value: tenant['uid'], // Unique UID as the value
+                                  child: Text(tenant['name']!), // Display name as the dropdown label
                                 );
                               }).toList(),
                             ),
@@ -180,10 +169,8 @@ class _MessagePageOld extends State<MessagePageOld> {
                             borderRadius: BorderRadius.circular(5),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(
-                                    0x661E1E1E), // Shadow color (#1E1E1E66)
-                                offset: Offset(
-                                    0, 2), // Horizontal and vertical offsets
+                                color: Color(0x661E1E1E), // Shadow color (#1E1E1E66)
+                                offset: Offset(0, 2), // Horizontal and vertical offsets
                                 blurRadius: 10.0, // Softness of the shadow
                                 spreadRadius: 1.0, // Spread of the shadow
                               ),
@@ -193,17 +180,12 @@ class _MessagePageOld extends State<MessagePageOld> {
                             onPressed: () {
                               if (messageController.text.isEmpty) {
                               } else {
-                                Services().CreateMessage(user!.uid,
-                                    selectedValue!, messageController.text);
+                                Services().CreateMessage(user!.uid, selectedValue!, messageController.text);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content:
-                                        Text('Message created successfully!'),
-                                    backgroundColor: Colors
-                                        .green, // Optional: Set a background color
-                                    duration: Duration(
-                                        seconds:
-                                            2), // Optional: Set duration for the snackbar
+                                    content: Text('Message created successfully!'),
+                                    backgroundColor: Colors.green, // Optional: Set a background color
+                                    duration: Duration(seconds: 2), // Optional: Set duration for the snackbar
                                   ),
                                 );
                               }

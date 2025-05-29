@@ -65,7 +65,7 @@ class _AdminAccountPageState extends State<AdminAccountPage> {
                       ),
                     ),
                   ),
-                  LogoPage(uid: widget.uid, type: widget.type),
+                  LogoPage(),
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),

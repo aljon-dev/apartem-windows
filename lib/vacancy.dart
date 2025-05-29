@@ -19,9 +19,7 @@ class _VacancyPage extends State<VacancyPage> {
   @override
   Widget build(BuildContext context) {
     // Create a reference to the Firestore document
-    DocumentReference documentRef = FirebaseFirestore.instance
-        .collection('available_units')
-        .doc('c6EnJE8SuwsbVnwnluZf');
+    DocumentReference documentRef = FirebaseFirestore.instance.collection('available_units').doc('c6EnJE8SuwsbVnwnluZf');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -38,7 +36,7 @@ class _VacancyPage extends State<VacancyPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  LogoPage(uid: widget.uid, type: widget.type),
+                  LogoPage(),
                   const SizedBox(height: 100),
                   StreamBuilder<DocumentSnapshot>(
                     stream: documentRef.snapshots(),
@@ -52,18 +50,15 @@ class _VacancyPage extends State<VacancyPage> {
                       }
 
                       if (!snapshot.hasData || !snapshot.data!.exists) {
-                        return const Center(
-                            child: Text('Document does not exist'));
+                        return const Center(child: Text('Document does not exist'));
                       }
 
                       // Get the data from the snapshot
-                      Map<String, dynamic> data =
-                          snapshot.data!.data() as Map<String, dynamic>;
+                      Map<String, dynamic> data = snapshot.data!.data() as Map<String, dynamic>;
                       String qty = data['qty']?.toString() ?? "0";
 
                       return Stack(
-                        alignment:
-                            Alignment.center, // Ensures both are centered
+                        alignment: Alignment.center, // Ensures both are centered
                         children: [
                           const Image(
                             image: AssetImage('assets/house2.png'),
@@ -98,9 +93,7 @@ class _VacancyPage extends State<VacancyPage> {
                   Container(
                     width: 150,
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(width: 1)),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), border: Border.all(width: 1)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

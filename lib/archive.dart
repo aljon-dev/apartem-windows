@@ -4,12 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ArchivePage extends StatefulWidget {
-  final String uid;
-  final String type;
   const ArchivePage({
     super.key,
-    required this.uid,
-    required this.type,
   });
 
   @override
@@ -579,14 +575,6 @@ class _ArchivePageState extends State<ArchivePage> {
 
       await FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
 
-      await FirebaseFirestore.instance.collection('archive_logs').add({
-        'tenantId': tenantId,
-        'action': 'unarchive',
-        'reason': _reasonController.text,
-        'adminId': widget.uid,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
       _reasonController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -635,13 +623,6 @@ class _ArchivePageState extends State<ArchivePage> {
 
   Future<void> _deleteTenant(String tenantId) async {
     try {
-      await FirebaseFirestore.instance.collection('archive_logs').add({
-        'tenantId': tenantId,
-        'action': 'permanent_delete',
-        'adminId': widget.uid,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
       await FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -694,7 +675,7 @@ class _ArchivePageState extends State<ArchivePage> {
                 ),
 
                 // Logo and title
-                LogoPage(uid: widget.uid, type: widget.type),
+                LogoPage(),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),

@@ -115,7 +115,7 @@ class _ManageUserPageState extends State<ManageUserPage> {
                           ),
                         ),
                       ),
-                      LogoPage(uid: widget.uid, type: widget.type),
+                      LogoPage(),
                       const SizedBox(height: 30),
                       const Text(
                         'Tenant Registration',

@@ -52,7 +52,7 @@ class _RequestPage extends State<RequestPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  LogoPage(uid: widget.uid, type: widget.type),
+                  LogoPage(),
                   const SizedBox(height: 50),
                   Container(
                     alignment: Alignment.center,
