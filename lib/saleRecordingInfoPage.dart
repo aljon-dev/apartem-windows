@@ -366,47 +366,61 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                                           ),
                                         ),
                                         actions: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              ElevatedButton.icon(
-                                                onPressed: () async {
-                                                  // UPDATE STATUS TO UNPAID
-                                                  await _firestore.collection('sales_record').doc(salelist.id).update({
-                                                    'status': 'unpaid',
-                                                  });
-                                                  Navigator.of(context).pop();
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text("Status updated to Unpaid")),
-                                                  );
-                                                },
-                                                icon: const Icon(Icons.cancel),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red,
-                                                  foregroundColor: Colors.white,
+                                          if (salelist.status != 'paid')
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    await _firestore.collection('sales_record').doc(salelist.id).update({
+                                                      'status': 'unpaid',
+                                                    });
+                                                    Navigator.of(context).pop();
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text("Status updated to Unpaid")),
+                                                    );
+                                                  },
+                                                  icon: const Icon(Icons.cancel),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.red,
+                                                    foregroundColor: Colors.white,
+                                                  ),
+                                                  label: const Text("Unpaid"),
                                                 ),
-                                                label: const Text("Unpaid"),
-                                              ),
-                                              ElevatedButton.icon(
-                                                onPressed: () async {
-                                                  // UPDATE STATUS TO PAID
-                                                  await _firestore.collection('sales_record').doc(salelist.id).update({
-                                                    'status': 'paid',
-                                                  });
-                                                  Navigator.of(context).pop();
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text("Status updated to Paid")),
-                                                  );
-                                                },
-                                                icon: const Icon(Icons.check),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.green,
-                                                  foregroundColor: Colors.white,
+                                                ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    // UPDATE STATUS TO PAID
+                                                    await _firestore.collection('sales_record').doc(salelist.id).update({
+                                                      'status': 'paid',
+                                                    });
+                                                    Navigator.of(context).pop();
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(content: Text("Status updated to Paid")),
+                                                    );
+                                                  },
+                                                  icon: const Icon(Icons.check),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: Colors.green,
+                                                    foregroundColor: Colors.white,
+                                                  ),
+                                                  label: const Text("Paid"),
                                                 ),
-                                                label: const Text("Paid"),
-                                              ),
-                                            ],
-                                          ),
+                                              ],
+                                            ),
+                                          if (salelist.status == 'paid')
+                                            Container(
+                                              child: ElevatedButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.red,
+                                                      foregroundColor: Colors.white,
+                                                      shape: const RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                                                      )),
+                                                  child: const Text('Close')),
+                                            ), // Empty container for paid status
                                         ],
                                       );
                                     },
