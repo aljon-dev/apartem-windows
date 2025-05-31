@@ -1,17 +1,21 @@
 import 'package:bogsandmila/logo.dart';
+import 'package:bogsandmila/message.dart';
+
 import 'package:bogsandmila/saleRecordingInfoPage.dart';
 import 'package:bogsandmila/tenantsalesrecord.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:emailjs/emailjs.dart' as emailjs;
 
 class TenantPage extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
 
   // ignore: prefer_typing_uninitialized_variables
+  final userid;
   final buildingnumber;
-  const TenantPage({super.key, required this.buildingnumber});
+  const TenantPage({super.key, required this.buildingnumber, required this.userid});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -20,6 +24,14 @@ class TenantPage extends StatefulWidget {
 
 class _TenantPageState extends State<TenantPage> {
   String? _selectedUnitNumber;
+
+  late String selectedBuildingNumber;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedBuildingNumber = widget.buildingnumber.toString();
+  }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final int _rowsPerPage = 10;
@@ -37,6 +49,7 @@ class _TenantPageState extends State<TenantPage> {
     final TextEditingController passwordController = TextEditingController();
     final TextEditingController contactController = TextEditingController();
     final TextEditingController rentalFeeController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
 
     String? selectedUnitNumber;
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -144,6 +157,20 @@ class _TenantPageState extends State<TenantPage> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Email Field
+                      TextFormField(
+                        controller: emailController,
+                        decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Email'),
+                        validator: (value) {
+                          if (value!.isEmpty) {
+                            return 'Please Put your email';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
                       // Username Field
                       TextFormField(
                         controller: usernameController,
@@ -244,17 +271,7 @@ class _TenantPageState extends State<TenantPage> {
                     if (formKey.currentState!.validate()) {
                       try {
                         // Add tenant to Firestore
-                        await FirebaseFirestore.instance.collection('tenant').add({
-                          'firstname': firstNameController.text,
-                          'lastname': lastNameController.text,
-                          'middlename': middleNameController.text,
-                          'unitnumber': selectedUnitNumber,
-                          'username': usernameController.text,
-                          'password': passwordController.text,
-                          'contactnumber': contactController.text,
-                          'buildingnumber': buildingNumber.toString(),
-                          'rentalfee': int.parse(rentalFeeController.text),
-                        });
+                        await FirebaseFirestore.instance.collection('tenant').add({'firstname': firstNameController.text, 'lastname': lastNameController.text, 'middlename': middleNameController.text, 'email': emailController.text, 'unitnumber': selectedUnitNumber, 'username': usernameController.text, 'password': passwordController.text, 'contactnumber': contactController.text, 'buildingnumber': buildingNumber.toString(), 'rentalfee': int.parse(rentalFeeController.text), 'profile': ''});
 
                         // Update unit occupancy status
                         final unitQuery = await FirebaseFirestore.instance
@@ -310,6 +327,89 @@ class _TenantPageState extends State<TenantPage> {
       contactController.dispose();
       rentalFeeController.dispose(); // Added missing dispose
     });
+  }
+
+  Future<void> ResetPassword(BuildContext context, QueryDocumentSnapshot doc) async {
+    // First show confirmation dialog
+    bool confirmReset = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Password Reset'),
+          content: const Text('Are you sure you want to reset this tenant\'s password? A new password will be emailed to them.'),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              child: const Text('Reset Password'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // If user didn't confirm, exit the function
+    if (confirmReset != true) return;
+
+    // Get tenant data
+    final tenantData = doc.data() as Map<String, dynamic>;
+
+    String firstname = tenantData['firstname'] ?? '';
+    String lastname = tenantData['lastname'] ?? '';
+    String email = tenantData['email'] ?? '';
+    String building = tenantData['buildingnumber'] ?? '';
+    String unitnumber = tenantData['unitnumber'] ?? '';
+
+    // Show loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Resetting password...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // Generate password - consider using a more secure method
+    String generatedPassword = '$firstname$lastname$building$unitnumber';
+
+    try {
+      // Send email with new password
+      await emailjs.send(
+        'service_ralmb2g',
+        'template_rahmraj',
+        {
+          'email': email,
+          'name': '$firstname $lastname',
+          'password': generatedPassword,
+        },
+        const emailjs.Options(
+          publicKey: 'VyqEOTlbKR9yzkJ2H',
+          privateKey: '33HeQw8TVZFY62e2b6WjK',
+        ),
+      );
+
+      // Update password in Firestore
+      await _firestore.collection('Tenant').doc(doc.id).update({'password': generatedPassword});
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password reset email sent to $email'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to reset password: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _showEditTenantDialog(QueryDocumentSnapshot doc) async {
@@ -505,7 +605,7 @@ class _TenantPageState extends State<TenantPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete'];
+    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete', 'Message'];
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -518,7 +618,7 @@ class _TenantPageState extends State<TenantPage> {
             (states) => Colors.white,
           ),
           headingTextStyle: const TextStyle(color: Colors.white),
-          dataTextStyle: const TextStyle(color: Colors.white),
+          dataTextStyle: const TextStyle(color: Colors.black),
         ),
       ),
       home: Scaffold(
@@ -536,654 +636,678 @@ class _TenantPageState extends State<TenantPage> {
           ),
         ),
         backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            SizedBox(
+        body: Stack(children: [
+          SizedBox(
               width: double.infinity,
               height: double.infinity,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    LogoPage(),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      color: const Color.fromARGB(240, 17, 17, 17),
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image(
-                            image: AssetImage('assets/manageuser.png'),
-                            width: 40,
-                          ),
-                          SizedBox(
-                            width: 20,
-                          ),
-                          Text(
-                            'Tenant',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 23),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Filter and Action Section
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                ),
-                              ],
+              child: SingleChildScrollView(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LogoPage(),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        color: const Color.fromARGB(240, 17, 17, 17),
+                        alignment: Alignment.center,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image(
+                              image: AssetImage('assets/manageuser.png'),
+                              width: 40,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Section Title
-
-                                // Filter and Button Row
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    // Unit Number Selection
-                                    Expanded(
-                                      flex: 3,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Select Unit Number',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.grey[700],
+                            SizedBox(width: 20),
+                            Text(
+                              'Tenant',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 23),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16.0),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Select Building Number',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey[700],
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          StreamBuilder<QuerySnapshot>(
-                                            stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).snapshots(),
-                                            builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                                              if (snapshot.hasError) {
-                                                return Container(
-                                                  height: 56,
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(color: Colors.red[300]!),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: const Center(
-                                                    child: Text(
-                                                      'Error loading units',
-                                                      style: TextStyle(color: Colors.red),
+                                            const SizedBox(height: 8),
+                                            StreamBuilder<QuerySnapshot>(
+                                              stream: FirebaseFirestore.instance.collection('building').snapshots(),
+                                              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                                if (snapshot.hasError) {
+                                                  return Container(
+                                                    height: 56,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(color: Colors.red[300]!),
+                                                      borderRadius: BorderRadius.circular(12),
                                                     ),
-                                                  ),
-                                                );
-                                              }
-
-                                              if (!snapshot.hasData) {
-                                                return Container(
-                                                  height: 56,
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(color: Colors.grey[300]!),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: const Center(
-                                                    child: SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                                    child: const Center(
+                                                      child: Text(
+                                                        'Error loading units',
+                                                        style: TextStyle(color: Colors.red),
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
-                                              }
-
-                                              final data = snapshot.data!.docs;
-
-                                              // Get unique unit numbers and sort them
-                                              Set<String> uniqueUnits = {};
-                                              for (var doc in data) {
-                                                Map<String, dynamic> docData = doc.data() as Map<String, dynamic>;
-                                                String unitnumber = docData['unitnumber']?.toString() ?? '';
-                                                if (unitnumber.isNotEmpty) {
-                                                  uniqueUnits.add(unitnumber);
+                                                  );
                                                 }
-                                              }
 
-                                              List<String> sortedUnits = uniqueUnits.toList()
-                                                ..sort((a, b) {
-                                                  // Try to sort numerically if possible
-                                                  final numA = int.tryParse(a);
-                                                  final numB = int.tryParse(b);
-                                                  if (numA != null && numB != null) {
-                                                    return numA.compareTo(numB);
-                                                  }
-                                                  return a.compareTo(b);
-                                                });
-
-                                              return Container(
-                                                decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  border: Border.all(color: Colors.grey[300]!),
-                                                ),
-                                                child: DropdownButtonFormField<String>(
-                                                  value: _selectedUnitNumber,
-                                                  hint: Row(
-                                                    children: [
-                                                      Icon(Icons.home, size: 20, color: Colors.grey[500]),
-                                                      const SizedBox(width: 8),
-                                                      Text(
-                                                        'Choose unit number',
-                                                        style: TextStyle(color: Colors.grey[600]),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  items: [
-                                                    DropdownMenuItem<String>(
-                                                      value: null,
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.clear_all, size: 20, color: Colors.grey[600]),
-                                                          const SizedBox(width: 8),
-                                                          Text(
-                                                            'All Units',
-                                                            style: TextStyle(
-                                                              color: Colors.grey[600],
-                                                              fontWeight: FontWeight.w500,
-                                                            ),
-                                                          ),
-                                                        ],
+                                                if (!snapshot.hasData) {
+                                                  return Container(
+                                                    height: 56,
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(color: Colors.grey[300]!),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: const Center(
+                                                      child: SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child: CircularProgressIndicator(strokeWidth: 2),
                                                       ),
                                                     ),
-                                                    ...sortedUnits.map((String unitnumber) {
-                                                      return DropdownMenuItem<String>(
-                                                        value: unitnumber,
+                                                  );
+                                                }
+
+                                                final data = snapshot.data!.docs;
+                                                Set<String> uniqueUnits = {};
+                                                for (var doc in data) {
+                                                  Map<String, dynamic> docData = doc.data() as Map<String, dynamic>;
+                                                  String BuildingNumber = docData['building']?.toString() ?? '';
+                                                  if (BuildingNumber.isNotEmpty) {
+                                                    uniqueUnits.add(BuildingNumber);
+                                                  }
+                                                }
+
+                                                List<String> sortedUnits = uniqueUnits.toList()
+                                                  ..sort((a, b) {
+                                                    final numA = int.tryParse(a);
+                                                    final numB = int.tryParse(b);
+                                                    if (numA != null && numB != null) {
+                                                      return numA.compareTo(numB);
+                                                    }
+                                                    return a.compareTo(b);
+                                                  });
+
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(color: Colors.grey[300]!),
+                                                  ),
+                                                  child: DropdownButtonFormField<String>(
+                                                    value: selectedBuildingNumber,
+                                                    hint: Row(
+                                                      children: [
+                                                        Icon(Icons.home, size: 20, color: Colors.grey[500]),
+                                                        const SizedBox(width: 8),
+                                                        Text(
+                                                          'Choose Building number',
+                                                          style: TextStyle(color: Colors.grey[600]),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    items: [
+                                                      DropdownMenuItem<String>(
+                                                        value: null,
                                                         child: Row(
                                                           children: [
-                                                            Icon(Icons.apartment, size: 20, color: Colors.blue[600]),
+                                                            Icon(Icons.clear_all, size: 20, color: Colors.grey[600]),
                                                             const SizedBox(width: 8),
                                                             Text(
-                                                              'Unit $unitnumber',
-                                                              style: const TextStyle(fontWeight: FontWeight.w500),
+                                                              'Buildings',
+                                                              style: TextStyle(
+                                                                color: Colors.grey[600],
+                                                                fontWeight: FontWeight.w500,
+                                                              ),
                                                             ),
                                                           ],
                                                         ),
-                                                      );
-                                                    }).toList(),
-                                                  ],
-                                                  onChanged: (String? newValue) {
-                                                    setState(() {
-                                                      _selectedUnitNumber = newValue;
-                                                    });
-                                                  },
-                                                  decoration: const InputDecoration(
-                                                    border: InputBorder.none,
-                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                                  ),
-                                                  dropdownColor: Colors.white,
-                                                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 20),
-
-                                    // Clear Filter Button
-                                    if (_selectedUnitNumber != null)
-                                      Container(
-                                        margin: const EdgeInsets.only(right: 12),
-                                        child: ElevatedButton.icon(
-                                          onPressed: () {
-                                            setState(() {
-                                              _selectedUnitNumber = null;
-                                            });
-                                          },
-                                          icon: const Icon(Icons.clear, size: 18),
-                                          label: const Text('Clear'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.grey[100],
-                                            foregroundColor: Colors.grey[700],
-                                            elevation: 0,
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                              side: BorderSide(color: Colors.grey[300]!),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                    StreamBuilder<QuerySnapshot>(
-                                      stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.parse(widget.buildingnumber)).where('isOccupied', isEqualTo: false).snapshots(),
-                                      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                                        if (snapshot.hasError) {
-                                          return const Text('Something went wrong');
-                                        }
-                                        if (snapshot.connectionState == ConnectionState.waiting) {
-                                          return const Center(child: CircularProgressIndicator());
-                                        }
-                                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                                          return const Text('No available units');
-                                        }
-
-                                        final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
-                                        final hasAvailableUnits = unitNumbers.isNotEmpty;
-
-                                        return ElevatedButton.icon(
-                                          onPressed: hasAvailableUnits ? () => _AssignTenantUserBuilding(int.parse(widget.buildingnumber)) : null,
-                                          icon: const Icon(Icons.person_add, size: 20),
-                                          label: const Text('Add Tenant'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: hasAvailableUnits ? Colors.blue[600] : Colors.grey[400],
-                                            foregroundColor: hasAvailableUnits ? Colors.white : Colors.grey[600],
-                                            elevation: hasAvailableUnits ? 2 : 0,
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    // Add Tenant Button
-                                  ],
-                                ),
-
-                                // Selected Unit Info
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: StreamBuilder<QuerySnapshot>(
-                        stream: widget.buildingnumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: widget.buildingnumber.toString()).snapshots(),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasError) {
-                            return const Center(child: Text('Something went wrong'));
-                          }
-                          if (!snapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-
-                          final data = snapshot.data!.docs;
-                          List<QueryDocumentSnapshot> filteredData = data;
-                          if (_selectedUnitNumber != null && _selectedUnitNumber!.isNotEmpty) {
-                            filteredData = data.where((doc) {
-                              final unitnumber = doc['unitnumber']?.toString().trim().toLowerCase() ?? '';
-                              final selectedUnit = _selectedUnitNumber!.trim().toLowerCase();
-                              return unitnumber == selectedUnit;
-                            }).toList();
-                          }
-
-                          final startIndex = _currentPage * _rowsPerPage;
-                          final endIndex = (startIndex + _rowsPerPage < filteredData.length) ? startIndex + _rowsPerPage : filteredData.length;
-
-                          return Column(
-                            children: [
-                              DataTable(
-                                columns: [
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Building Number',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Unit Number',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Contact Number',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Username',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Rental Fee',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: Container(
-                                      width: MediaQuery.of(context).size.width / 8,
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: const Text(
-                                        'Action',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                rows: List.generate(
-                                  endIndex - startIndex,
-                                  (index) {
-                                    final doc = filteredData[startIndex + index];
-                                    final firstname = doc['firstname'] ?? '';
-                                    final lastname = doc['lastname'] ?? '';
-                                    final unitnumber = doc['unitnumber'] ?? '';
-                                    final buildingnumber = doc['buildingnumber'] ?? '';
-                                    final userunitnumber = doc['unitnumber'] ?? '';
-                                    final contactnumber = doc['contactnumber'] ?? '';
-                                    final username = doc['username'] ?? '';
-                                    final password = doc['password'] ?? '';
-                                    final rentalFee = int.parse(doc['rentalfee'].toString()) ?? '0';
-
-                                    return DataRow(
-                                      cells: [
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(buildingnumber, style: const TextStyle(color: Colors.black)),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(unitnumber, style: const TextStyle(color: Colors.black)),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(contactnumber, style: const TextStyle(color: Colors.black)),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: GestureDetector(
-                                              child: Text(username, style: const TextStyle(color: Colors.black)),
-                                              onTap: () {},
-                                            ),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Text(rentalFee.toString(), style: const TextStyle(color: Colors.black)),
-                                          ),
-                                        ),
-                                        DataCell(
-                                          DropdownButtonFormField<String>(
-                                            value: selectedValue,
-
-                                            decoration: const InputDecoration(
-                                              border: InputBorder.none,
-                                            ),
-                                            icon: const FaIcon(FontAwesomeIcons.ellipsisVertical), // Remove the default dropdown icon
-                                            onChanged: (String? newValue) {
-                                              setState(() async {
-                                                selectedValue = null;
-
-                                                if (newValue == 'Payment') {
-                                                  Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) => saleRecordingInfoPage(
-                                                          uid: doc.id,
-                                                          firstname: firstname,
-                                                          lastname: lastname,
-                                                          buildnumber: widget.buildingnumber,
-                                                          unitnumber: unitnumber,
-                                                        ),
-                                                      ));
-                                                } else if (newValue == 'View Sub-Account') {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (BuildContext context) {
-                                                      return AlertDialog(
-                                                        title: const Text('Sub View Account'),
-                                                        content: SizedBox(
-                                                          height: 300,
-                                                          width: 600, // Allow space for the ListView
+                                                      ),
+                                                      ...sortedUnits.map((String unitnumber) {
+                                                        return DropdownMenuItem<String>(
+                                                          value: unitnumber,
                                                           child: Row(
                                                             children: [
-                                                              Expanded(
-                                                                // Wrap ListView with Flexible
-                                                                child: StreamBuilder<QuerySnapshot>(
-                                                                  stream: FirebaseFirestore.instance.collection('Sub-Tenant').where('mainAccountId', isEqualTo: doc.id).snapshots(),
-                                                                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                                                                    if (snapshot.hasError) {
-                                                                      return Text('Something went wrong');
-                                                                    }
-
-                                                                    if (snapshot.connectionState == ConnectionState.waiting) {
-                                                                      return CircularProgressIndicator();
-                                                                    }
-
-                                                                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                                                                      return Text('No data found');
-                                                                    }
-
-                                                                    // Data successfully retrieved
-                                                                    return ListView(
-                                                                      children: snapshot.data!.docs.map((DocumentSnapshot document) {
-                                                                        Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-
-                                                                        String name = data['name'] ?? 'No name';
-                                                                        String password = data['password'] ?? 'No password';
-                                                                        String contact = data['contact'] ?? 'No contact';
-                                                                        String mainAccountId = data['mainAccountId'] ?? 'No contact';
-
-                                                                        return ListTile(
-                                                                          title: Text(name),
-                                                                          subtitle: Column(
-                                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                                            children: [
-                                                                              Text('Password: $password'),
-                                                                              Text('Contact: $contact'),
-                                                                              Text('mainAccountId: $mainAccountId'),
-                                                                            ],
-                                                                          ),
-                                                                        );
-                                                                      }).toList(),
-                                                                    );
-                                                                  },
-                                                                ),
+                                                              Icon(Icons.apartment, size: 20, color: Colors.blue[600]),
+                                                              const SizedBox(width: 8),
+                                                              Text(
+                                                                'Building $unitnumber',
+                                                                style: const TextStyle(fontWeight: FontWeight.w500),
                                                               ),
                                                             ],
                                                           ),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () {
-                                                              Navigator.of(context).pop(); // Close the dialog
-                                                            },
-                                                            child: const Text('Close'),
-                                                          ),
-                                                          TextButton(
-                                                            onPressed: () {
-                                                              // Save logic based on vacantValue
-                                                              Navigator.of(context).pop(); // Close the dialog
-                                                            },
-                                                            child: const Text('Save'),
-                                                          ),
-                                                        ],
-                                                      );
+                                                        );
+                                                      }).toList(),
+                                                    ],
+                                                    onChanged: (String? newValue) {
+                                                      setState(() {
+                                                        selectedBuildingNumber = newValue!;
+                                                      });
                                                     },
-                                                  );
-                                                } else if (newValue == 'Reset Password') {
-                                                  FirebaseFirestore.instance.collection('tenant').doc(doc.id).update({
-                                                    'password': '123456789',
-                                                  });
-
-                                                  SuccessMessage('Successfully Reset Password');
-                                                } else if (newValue == 'Edit') {
-                                                  _showEditTenantDialog(doc);
-                                                } else if (newValue == 'Delete') {
-                                                  Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-                                                  Map<String, dynamic> ArchiveData = {...data, 'buildingnumber': "001", 'unitnumber': "001"};
-                                                  await FirebaseFirestore.instance.collection('Archive').doc(doc.id).set(ArchiveData);
-
-                                                  await FirebaseFirestore.instance.collection('tenant').doc(doc.id).delete();
-
-                                                  final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
-
-                                                  for (var unitDoc in unitQuery.docs) {
-                                                    await FirebaseFirestore.instance.collection('UnitNumber').doc(unitDoc.id).update({
-                                                      'isOccupied': false,
-                                                    });
-                                                  }
-
-                                                  SuccessMessage('Successfully Deleted');
-                                                }
+                                                    decoration: const InputDecoration(
+                                                      border: InputBorder.none,
+                                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                    ),
+                                                    dropdownColor: Colors.white,
+                                                    icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 20),
+                                      if (_selectedUnitNumber != null)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 12),
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              setState(() {
+                                                _selectedUnitNumber = null;
                                               });
                                             },
-                                            items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
-                                              return DropdownMenuItem<String>(
-                                                value: value,
-                                                child: Text(value),
-                                              );
-                                            }).toList(),
+                                            icon: const Icon(Icons.clear, size: 18),
+                                            label: const Text('Clear'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey[100],
+                                              foregroundColor: Colors.grey[700],
+                                              elevation: 0,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                side: BorderSide(color: Colors.grey[300]!),
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: List.generate(
-                                    (data.length / _rowsPerPage).ceil(),
-                                    (index) => Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _currentPage = index;
-                                          });
+                                      StreamBuilder<QuerySnapshot>(
+                                        stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.parse(selectedBuildingNumber)).where('isOccupied', isEqualTo: false).snapshots(),
+                                        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                          if (snapshot.hasError) {
+                                            return const Text('Something went wrong');
+                                          }
+                                          if (snapshot.connectionState == ConnectionState.waiting) {
+                                            return const Center(child: CircularProgressIndicator());
+                                          }
+                                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                            return const Text('No available units');
+                                          }
+
+                                          final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                                          final hasAvailableUnits = unitNumbers.isNotEmpty;
+
+                                          return ElevatedButton.icon(
+                                            onPressed: hasAvailableUnits ? () => _AssignTenantUserBuilding(int.parse(selectedBuildingNumber)) : null,
+                                            icon: const Icon(Icons.person_add, size: 20),
+                                            label: const Text('Add Tenant'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: hasAvailableUnits ? Colors.blue[600] : Colors.grey[400],
+                                              foregroundColor: hasAvailableUnits ? Colors.white : Colors.grey[600],
+                                              elevation: hasAvailableUnits ? 2 : 0,
+                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                          );
                                         },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: _currentPage == index ? const Color(0xdd1E1E1E) : Colors.white,
-                                          foregroundColor: _currentPage == index ? Colors.white : const Color(0xdd1E1E1E),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        width: double.infinity,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: StreamBuilder<QuerySnapshot>(
+                              stream: selectedBuildingNumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: selectedBuildingNumber).snapshots(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return const Center(child: Text('Something went wrong'));
+                                }
+                                if (!snapshot.hasData) {
+                                  return const Center(child: CircularProgressIndicator());
+                                }
+
+                                final data = snapshot.data!.docs;
+                                List<QueryDocumentSnapshot> filteredData = data;
+                                if (selectedBuildingNumber != null && selectedBuildingNumber.isNotEmpty) {
+                                  filteredData = data.where((doc) {
+                                    final unitnumber = doc['buildingnumber']?.toString().trim().toLowerCase() ?? '';
+                                    final selectedUnit = selectedBuildingNumber.trim().toLowerCase();
+                                    return unitnumber == selectedUnit;
+                                  }).toList();
+                                }
+
+                                final startIndex = _currentPage * _rowsPerPage;
+                                final endIndex = (startIndex + _rowsPerPage < filteredData.length) ? startIndex + _rowsPerPage : filteredData.length;
+
+                                return Column(
+                                  children: [
+                                    DataTable(
+                                        columnSpacing: 40,
+                                        horizontalMargin: 20,
+                                        columns: const <DataColumn>[
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 80,
+                                              child: Text(
+                                                'Profile',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 100,
+                                              child: Text(
+                                                'Unit Number',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 150,
+                                              child: Text(
+                                                'Fullname',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Text(
+                                                'Contact Number',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 200,
+                                              child: Text(
+                                                'Email',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 120,
+                                              child: Text(
+                                                'Username',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 100,
+                                              child: Text(
+                                                'Rental Fee',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataColumn(
+                                            label: SizedBox(
+                                              width: 200, // Increased width to prevent overflow
+                                              child: Text(
+                                                'Action',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                        rows: List.generate(
+                                          endIndex - startIndex,
+                                          (index) {
+                                            final doc = filteredData[startIndex + index];
+                                            final firstname = doc['firstname'] ?? '';
+                                            final lastname = doc['lastname'] ?? '';
+                                            final unitnumber = doc['unitnumber'] ?? '';
+                                            final buildingnumber = doc['buildingnumber'] ?? '';
+                                            final userunitnumber = doc['unitnumber'] ?? '';
+                                            final contactnumber = doc['contactnumber'] ?? '';
+                                            final username = doc['username'] ?? '';
+                                            final password = doc['password'] ?? '';
+                                            final email = doc['email'] ?? 'No Email Provided Yet';
+                                            final profile = doc['profile'];
+                                            final rentalFee = int.parse(doc['rentalfee'].toString()) ?? '0';
+
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 80,
+                                                    child: CircleAvatar(
+                                                      backgroundColor: Colors.blue,
+                                                      child: profile != ''
+                                                          ? ClipOval(
+                                                              child: Image.network(profile),
+                                                            )
+                                                          : Text(
+                                                              '${firstname.isNotEmpty ? firstname[0] : ''}${lastname.isNotEmpty ? lastname[0] : ''}',
+                                                              style: const TextStyle(color: Colors.white),
+                                                            ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 100,
+                                                    child: Text(unitnumber, style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 150,
+                                                    child: Text('$firstname $lastname', style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 120,
+                                                    child: Text(contactnumber, style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 200,
+                                                    child: Text(email, style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 120,
+                                                    child: Text(username, style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 100,
+                                                    child: Text(rentalFee.toString(), style: const TextStyle(color: Colors.black)),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 150, // Increased width to accommodate the row of buttons
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        // Message Button
+                                                        IconButton(
+                                                          icon: const Icon(Icons.message, size: 18),
+                                                          onPressed: () {
+                                                            Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                    builder: (context) => messagePage(
+                                                                          userid: widget.userid,
+                                                                          firstname: firstname,
+                                                                        )));
+                                                          },
+                                                          tooltip: 'Message',
+                                                        ),
+                                                        IconButton(
+                                                            onPressed: () {
+                                                              // Dropdown for other actions
+
+                                                              showDialog(
+                                                                  context: context,
+                                                                  builder: (BuildContext context) {
+                                                                    return AlertDialog(
+                                                                      content: DropdownButton<String>(
+                                                                        value: null,
+                                                                        underline: Container(),
+                                                                        hint: Text('Select an action'),
+                                                                        icon: const Icon(Icons.more_vert),
+                                                                        items: ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete'].map((String value) {
+                                                                          return DropdownMenuItem<String>(
+                                                                            value: value,
+                                                                            child: Row(
+                                                                              children: [
+                                                                                Icon(
+                                                                                  value == 'Payment'
+                                                                                      ? Icons.payment
+                                                                                      : value == 'View Sub-Account'
+                                                                                          ? Icons.account_tree
+                                                                                          : value == 'Reset Password'
+                                                                                              ? Icons.lock_reset
+                                                                                              : value == 'Edit'
+                                                                                                  ? Icons.edit
+                                                                                                  : Icons.delete,
+                                                                                  size: 18,
+                                                                                ),
+                                                                                const SizedBox(width: 8),
+                                                                                Text(value),
+                                                                              ],
+                                                                            ),
+                                                                          );
+                                                                        }).toList(),
+                                                                        onChanged: (String? newValue) async {
+                                                                          if (newValue == 'Payment') {
+                                                                            Navigator.push(
+                                                                                context,
+                                                                                MaterialPageRoute(
+                                                                                  builder: (context) => saleRecordingInfoPage(
+                                                                                    uid: doc.id,
+                                                                                    firstname: firstname,
+                                                                                    lastname: lastname,
+                                                                                    buildnumber: selectedBuildingNumber,
+                                                                                    unitnumber: unitnumber,
+                                                                                  ),
+                                                                                ));
+                                                                          } else if (newValue == 'View Sub-Account') {
+                                                                            showDialog(
+                                                                              context: context,
+                                                                              builder: (BuildContext context) {
+                                                                                return AlertDialog(
+                                                                                  title: const Text('Sub View Account'),
+                                                                                  content: SizedBox(
+                                                                                    height: 300,
+                                                                                    width: 600,
+                                                                                    child: Row(
+                                                                                      children: [
+                                                                                        Expanded(
+                                                                                          child: StreamBuilder<QuerySnapshot>(
+                                                                                            stream: FirebaseFirestore.instance.collection('Sub-Tenant').where('mainAccountId', isEqualTo: doc.id).snapshots(),
+                                                                                            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                                                                              if (snapshot.hasError) {
+                                                                                                return Text('Something went wrong');
+                                                                                              }
+
+                                                                                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                                                return CircularProgressIndicator();
+                                                                                              }
+
+                                                                                              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                                                                                                return Text('No data found');
+                                                                                              }
+
+                                                                                              return ListView(
+                                                                                                children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                                                                                                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+
+                                                                                                  String name = data['name'] ?? 'No name';
+                                                                                                  String password = data['password'] ?? 'No password';
+                                                                                                  String contact = data['contact'] ?? 'No contact';
+                                                                                                  String mainAccountId = data['mainAccountId'] ?? 'No contact';
+
+                                                                                                  return ListTile(
+                                                                                                    title: Text(name),
+                                                                                                    subtitle: Column(
+                                                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                                      children: [
+                                                                                                        Text('Password: $password'),
+                                                                                                        Text('Contact: $contact'),
+                                                                                                        Text('mainAccountId: $mainAccountId'),
+                                                                                                      ],
+                                                                                                    ),
+                                                                                                  );
+                                                                                                }).toList(),
+                                                                                              );
+                                                                                            },
+                                                                                          ),
+                                                                                        ),
+                                                                                      ],
+                                                                                    ),
+                                                                                  ),
+                                                                                  actions: [
+                                                                                    TextButton(
+                                                                                      onPressed: () {
+                                                                                        Navigator.of(context).pop();
+                                                                                      },
+                                                                                      child: const Text('Close'),
+                                                                                    ),
+                                                                                  ],
+                                                                                );
+                                                                              },
+                                                                            );
+                                                                          } else if (newValue == 'Reset Password') {
+                                                                            ResetPassword(context, doc);
+                                                                          } else if (newValue == 'Edit') {
+                                                                            _showEditTenantDialog(doc);
+                                                                          } else if (newValue == 'Delete') {
+                                                                            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                                                                            Map<String, dynamic> ArchiveData = {...data, 'buildingnumber': "001", 'unitnumber': "001"};
+                                                                            await FirebaseFirestore.instance.collection('Archive').doc(doc.id).set(ArchiveData);
+                                                                            await FirebaseFirestore.instance.collection('tenant').doc(doc.id).delete();
+
+                                                                            final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
+
+                                                                            for (var unitDoc in unitQuery.docs) {
+                                                                              await FirebaseFirestore.instance.collection('UnitNumber').doc(unitDoc.id).update({
+                                                                                'isOccupied': false,
+                                                                              });
+                                                                            }
+
+                                                                            SuccessMessage('Successfully Deleted');
+                                                                          }
+                                                                        },
+                                                                      ),
+                                                                      actions: [
+                                                                        ElevatedButton(
+                                                                            onPressed: () {
+                                                                              Navigator.pop(context);
+                                                                            },
+                                                                            style: ElevatedButton.styleFrom(
+                                                                              backgroundColor: Colors.red,
+                                                                              foregroundColor: Colors.white,
+                                                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                                            ),
+                                                                            child: const Text('Close'))
+                                                                      ],
+                                                                    );
+                                                                  });
+                                                            },
+                                                            icon: const Icon(Icons.more_vert))
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        )),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: List.generate(
+                                          (data.length / _rowsPerPage).ceil(),
+                                          (index) => Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  _currentPage = index;
+                                                });
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: _currentPage == index ? const Color(0xdd1E1E1E) : Colors.white,
+                                                foregroundColor: _currentPage == index ? Colors.white : const Color(0xdd1E1E1E),
+                                              ),
+                                              child: Text((index + 1).toString()),
+                                            ),
+                                          ),
                                         ),
-                                        child: Text((index + 1).toString()),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+                                  ],
+                                );
+                              }),
+                        ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      color: const Color.fromARGB(240, 17, 17, 17),
-                      alignment: Alignment.center,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image(
-                            image: AssetImage('assets/manageuser.png'),
-                            width: 40,
-                          ),
-                          SizedBox(
-                            width: 20,
-                          ),
-                          Text(
-                            'Admin',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 23),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                color: const Color.fromARGB(255, 30, 30, 30),
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: const Center(
-                  child: Text(
-                    'Copyright © Bogs and Mila Apartment. All Rights Reserved.',
-                    style: TextStyle(color: Colors.white),
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ],
-        ),
+              )),
+        ]),
       ),
     );
   }
 
-  // ignore: non_constant_identifier_names
   SuccessMessage(String label) {
     return ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(label),

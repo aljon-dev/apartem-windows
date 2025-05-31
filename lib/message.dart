@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 
 class messagePage extends StatefulWidget {
   final String userid;
+  final String firstname;
 
-  const messagePage({Key? key, required this.userid}) : super(key: key);
+  const messagePage({Key? key, required this.userid, required this.firstname}) : super(key: key);
 
   @override
   _messagePageState createState() => _messagePageState();
@@ -13,9 +14,21 @@ class messagePage extends StatefulWidget {
 
 class _messagePageState extends State<messagePage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final TextEditingController _searchController = TextEditingController();
+  TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedTenantId;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if (widget.firstname != '') {
+      setState(() {
+        _searchController.text = widget.firstname.toString();
+        _searchQuery = widget.firstname.toLowerCase();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -28,7 +41,7 @@ class _messagePageState extends State<messagePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
-        backgroundColor: Colors.blue.shade50,
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       ),
       body: Row(
         children: [

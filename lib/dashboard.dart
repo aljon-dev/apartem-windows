@@ -192,7 +192,12 @@ class _DashboardPage extends State<DashboardPage> {
                                   // ),
                                   GestureDetector(
                                     onTap: () {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => buildingUnits()));
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) => buildingUnits(
+                                                    userid: widget.uid,
+                                                  )));
                                     },
                                     child: Container(
                                       width: 200,
@@ -219,7 +224,6 @@ class _DashboardPage extends State<DashboardPage> {
                                   ),
                                   _cardContainer(2, "Message", "assets/message.png"),
                                   _cardContainer(6, "Manage Admin User", "assets/manageuser.png"),
-                                  _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
                                 ],
                               ),
                           if (widget.type == 'Admin')
@@ -241,29 +245,13 @@ class _DashboardPage extends State<DashboardPage> {
                               //     5, "Vacancy", "assets/vacancy.png"),
                               if (widget.type == 'Super Admin') _cardContainer(1, "Announce", "assets/announce.png"),
                               if (widget.type == 'Super Admin') _cardContainer(3, "Request", "assets/request.png"),
-                              if (widget.type == 'Admin') _cardContainer(4, "Rental Record", "assets/salesrecord.png"),
-                              _cardContainer(7, "Units", "assets/house2.png"),
+
                               _cardContainer(8, "Archive", "assets/archive.png"),
                             ],
                           ),
                         ],
                       )),
                 ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              color: const Color.fromARGB(255, 30, 30, 30),
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: const Center(
-                child: Text(
-                  'Copyright © Bogs and Mila Apartment. All Rights Reserved.',
-                  style: TextStyle(color: Colors.white),
-                ),
               ),
             ),
           ),
@@ -303,6 +291,7 @@ class _DashboardPage extends State<DashboardPage> {
             } else if (id == 2) {
               return messagePage(
                 userid: widget.uid,
+                firstname: '',
               );
             } else if (id == 3) {
               return RequestPage(uid: widget.uid, type: widget.type);

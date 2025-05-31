@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class buildingUnits extends StatefulWidget {
-  const buildingUnits({super.key});
+  final userid;
+  const buildingUnits({super.key, required this.userid});
 
   @override
   State<buildingUnits> createState() => _buildingUnits();
@@ -124,7 +125,7 @@ class _buildingUnits extends State<buildingUnits> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Edit Building $BuildingNumber',
+                  'Update Building $BuildingNumber',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -192,6 +193,7 @@ class _buildingUnits extends State<buildingUnits> {
 
                               try {
                                 await _firestore.collection('UnitNumber').add({
+                                  'building#': int.parse(BuildingNumber),
                                   'buildingId': BuildingId,
                                   'unitNumber': int.parse(newUnitNumberController.text),
                                   'unitType': newUnitTypeController.text,
@@ -582,7 +584,7 @@ class _buildingUnits extends State<buildingUnits> {
                                     children: [
                                       ElevatedButton(
                                         onPressed: () {
-                                          Navigator.push(context, MaterialPageRoute(builder: (context) => TenantPage(buildingnumber: building['building'].toString())));
+                                          Navigator.push(context, MaterialPageRoute(builder: (context) => TenantPage(buildingnumber: building['building'].toString(), userid: widget.userid)));
                                         },
                                         style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                                         child: const Text('View'),

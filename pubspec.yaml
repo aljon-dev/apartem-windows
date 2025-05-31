@@ -43,6 +43,7 @@ dependencies:
   chat_bubbles: ^1.6.0
   url_launcher: ^6.3.0
   firebase_auth: ^5.5.3
+  emailjs: ^4.0.0
 
 dev_dependencies:
   flutter_test:
