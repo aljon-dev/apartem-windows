@@ -351,8 +351,40 @@ class _DashboardPage extends State<DashboardPage> {
                               //     5, "Vacancy", "assets/vacancy.png"),
                               if (widget.type == 'Super Admin') _cardContainer(1, "Announce", "assets/announce.png"),
                               if (widget.type == 'Super Admin') _cardContainer(3, "Request", "assets/request.png"),
-
-                              _cardContainer(8, "Archive", "assets/archive.png"),
+                              if (widget.type == 'Admin') _cardContainer(8, "Archive", "assets/archive.png"),
+                              if (widget.type == 'Admin')
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => buildingUnits(
+                                                  userid: widget.uid,
+                                                )));
+                                  },
+                                  child: Container(
+                                    width: 200,
+                                    height: 200,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xddF6F6F4),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Image(
+                                          image: AssetImage('assets/updatedatabase.png'),
+                                          fit: BoxFit.cover,
+                                        ),
+                                        Text(
+                                          'Update Building',
+                                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -401,6 +433,8 @@ class _DashboardPage extends State<DashboardPage> {
               );
             } else if (id == 3) {
               return RequestPage(uid: widget.uid, type: widget.type);
+            } else if (id == 4) {
+              return buildingUnits(userid: '');
             } else if (id == 5) {
               return VacancyPage(uid: widget.uid, type: widget.type);
             } else if (id == 6) {
