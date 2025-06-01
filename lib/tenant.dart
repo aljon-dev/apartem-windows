@@ -1106,18 +1106,36 @@ class _TenantPageState extends State<TenantPage> {
                                             return DataRow(
                                               cells: [
                                                 DataCell(
-                                                  SizedBox(
-                                                    width: 80,
-                                                    child: CircleAvatar(
-                                                      backgroundColor: Colors.blue,
-                                                      child: profile != ''
-                                                          ? ClipOval(
-                                                              child: Image.network(profile),
-                                                            )
-                                                          : Text(
-                                                              '${firstname.isNotEmpty ? firstname[0] : ''}${lastname.isNotEmpty ? lastname[0] : ''}',
-                                                              style: const TextStyle(color: Colors.white),
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      if (profile.isNotEmpty) {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (_) => Dialog(
+                                                            backgroundColor: Colors.transparent,
+                                                            child: InteractiveViewer(
+                                                              child: ClipRRect(
+                                                                borderRadius: BorderRadius.circular(10),
+                                                                child: Image.network(profile),
+                                                              ),
                                                             ),
+                                                          ),
+                                                        );
+                                                      }
+                                                    },
+                                                    child: SizedBox(
+                                                      width: 80,
+                                                      child: CircleAvatar(
+                                                        backgroundColor: Colors.blue,
+                                                        child: profile != ''
+                                                            ? ClipOval(
+                                                                child: Image.network(profile),
+                                                              )
+                                                            : Text(
+                                                                '${firstname.isNotEmpty ? firstname[0] : ''}${lastname.isNotEmpty ? lastname[0] : ''}',
+                                                                style: const TextStyle(color: Colors.white),
+                                                              ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -1231,49 +1249,82 @@ class _TenantPageState extends State<TenantPage> {
                                                                               context: context,
                                                                               builder: (BuildContext context) {
                                                                                 return AlertDialog(
-                                                                                  title: const Text('Sub View Account'),
+                                                                                  title: const Text('Sub Accounts'),
                                                                                   content: SizedBox(
-                                                                                    height: 300,
-                                                                                    width: 600,
-                                                                                    child: Row(
+                                                                                    width: double.maxFinite,
+                                                                                    child: Column(
+                                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                      mainAxisSize: MainAxisSize.min,
                                                                                       children: [
-                                                                                        Expanded(
+                                                                                        // 👇 Sub-heading below title
+                                                                                        Padding(
+                                                                                          padding: const EdgeInsets.only(bottom: 8),
+                                                                                          child: Text(
+                                                                                            'Tenant: ${doc['firstname']} ${doc['lastname']} | Building #: ${doc['buildingnumber']} | Unit #: ${doc['unitnumber']}',
+                                                                                            style: const TextStyle(
+                                                                                              fontSize: 14,
+                                                                                              fontWeight: FontWeight.w500,
+                                                                                            ),
+                                                                                          ),
+                                                                                        ),
+
+                                                                                        // 👇 Sub-account list
+                                                                                        SizedBox(
+                                                                                          height: 250,
                                                                                           child: StreamBuilder<QuerySnapshot>(
-                                                                                            stream: FirebaseFirestore.instance.collection('Sub-Tenant').where('mainAccountId', isEqualTo: doc.id).snapshots(),
-                                                                                            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                                                                            stream: _firestore.collection('Sub-Tenant').where('mainAccountId', isEqualTo: doc.id).snapshots(),
+                                                                                            builder: (context, snapshot) {
                                                                                               if (snapshot.hasError) {
-                                                                                                return Text('Something went wrong');
+                                                                                                return const Text('Error loading sub-accounts');
+                                                                                              }
+                                                                                              if (!snapshot.hasData) {
+                                                                                                return const Center(child: CircularProgressIndicator());
+                                                                                              }
+                                                                                              if (snapshot.data!.docs.isEmpty) {
+                                                                                                return const Center(child: Text('No sub-accounts found'));
                                                                                               }
 
-                                                                                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                                                                                return CircularProgressIndicator();
-                                                                                              }
-
-                                                                                              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                                                                                                return Text('No data found');
-                                                                                              }
-
-                                                                                              return ListView(
-                                                                                                children: snapshot.data!.docs.map((DocumentSnapshot document) {
-                                                                                                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-
-                                                                                                  String name = data['name'] ?? 'No name';
-                                                                                                  String password = data['password'] ?? 'No password';
-                                                                                                  String contact = data['contact'] ?? 'No contact';
-                                                                                                  String mainAccountId = data['mainAccountId'] ?? 'No contact';
-
+                                                                                              return ListView.builder(
+                                                                                                itemCount: snapshot.data!.docs.length,
+                                                                                                itemBuilder: (context, index) {
+                                                                                                  final subAccount = snapshot.data!.docs[index];
                                                                                                   return ListTile(
-                                                                                                    title: Text(name),
+                                                                                                    leading: GestureDetector(
+                                                                                                      onTap: () {
+                                                                                                        showDialog(
+                                                                                                          context: context,
+                                                                                                          builder: (_) => Dialog(
+                                                                                                            backgroundColor: Colors.transparent,
+                                                                                                            child: InteractiveViewer(
+                                                                                                              child: ClipRRect(
+                                                                                                                borderRadius: BorderRadius.circular(12),
+                                                                                                                child: Image.network(
+                                                                                                                  subAccount['profileImage'],
+                                                                                                                  fit: BoxFit.contain,
+                                                                                                                ),
+                                                                                                              ),
+                                                                                                            ),
+                                                                                                          ),
+                                                                                                        );
+                                                                                                      },
+                                                                                                      child: CircleAvatar(
+                                                                                                        backgroundImage: NetworkImage(subAccount['profileImage']),
+                                                                                                      ),
+                                                                                                    ),
+                                                                                                    title: Text(subAccount['fullname'] ?? 'No name'),
                                                                                                     subtitle: Column(
                                                                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                                                                       children: [
-                                                                                                        Text('Password: $password'),
-                                                                                                        Text('Contact: $contact'),
-                                                                                                        Text('mainAccountId: $mainAccountId'),
+                                                                                                        Text('Username: ${subAccount['username']}'),
+                                                                                                        Text('Contact: ${subAccount['contact']}'),
+                                                                                                        Text('Email: ${subAccount['email']}'),
+                                                                                                        Text('Remarks: ${subAccount['remarks']}'),
+                                                                                                        Text('Building #: ${subAccount['buildingnumber']}'),
+                                                                                                        Text('Unit #: ${subAccount['unitnumber']}'),
                                                                                                       ],
                                                                                                     ),
                                                                                                   );
-                                                                                                }).toList(),
+                                                                                                },
                                                                                               );
                                                                                             },
                                                                                           ),
@@ -1283,9 +1334,7 @@ class _TenantPageState extends State<TenantPage> {
                                                                                   ),
                                                                                   actions: [
                                                                                     TextButton(
-                                                                                      onPressed: () {
-                                                                                        Navigator.of(context).pop();
-                                                                                      },
+                                                                                      onPressed: () => Navigator.of(context).pop(),
                                                                                       child: const Text('Close'),
                                                                                     ),
                                                                                   ],
