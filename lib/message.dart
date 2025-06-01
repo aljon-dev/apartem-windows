@@ -323,41 +323,83 @@ class _messagePageState extends State<messagePage> {
               const SizedBox(height: 24),
 
               // Profile Picture
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.blue.shade100,
-                child: tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty
-                    ? ClipOval(
-                        child: Image.network(
-                          tenantData['profile'],
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Text(
-                            '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade900,
+              GestureDetector(
+                onTap: () {
+                  if (tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty) {
+                    showDialog(
+                      context: context,
+                      builder: (_) => Dialog(
+                        backgroundColor: Colors.transparent,
+                        insetPadding: const EdgeInsets.all(20),
+                        child: Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            InteractiveViewer(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  tenantData['profile'],
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) => Center(
+                                    child: Text(
+                                      '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
-                            );
-                          },
-                        ),
-                      )
-                    : Text(
-                        '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.white),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
                         ),
                       ),
+                    );
+                  }
+                },
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.blue.shade100,
+                  child: tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty
+                      ? ClipOval(
+                          child: Image.network(
+                            tenantData['profile'],
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade900,
+                              ),
+                            ),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
+                              );
+                            },
+                          ),
+                        )
+                      : Text(
+                          '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                ),
               ),
+
               const SizedBox(height: 16),
 
               // Full Name

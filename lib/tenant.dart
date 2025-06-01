@@ -723,16 +723,12 @@ class _TenantPageState extends State<TenantPage> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         color: const Color.fromARGB(240, 17, 17, 17),
                         alignment: Alignment.center,
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Image(
-                              image: AssetImage('assets/manageuser.png'),
-                              width: 40,
-                            ),
                             SizedBox(width: 20),
                             Text(
-                              'Tenant',
+                              'Building # $selectedBuildingNumber',
                               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 23),
                             ),
                           ],

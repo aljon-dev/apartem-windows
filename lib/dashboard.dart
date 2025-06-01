@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bogsandmila/adminaccount.dart';
 import 'package:bogsandmila/announce.dart';
 import 'package:bogsandmila/archive.dart';
@@ -17,6 +19,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class DashboardPage extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
@@ -201,12 +207,55 @@ class _DashboardPage extends State<DashboardPage> {
                   ),
                   LogoPage(),
                   const SizedBox(height: 30),
-                  Container(
-                    alignment: Alignment.center,
-                    child: Text(
-                      widget.type == 'Admin' ? 'Admin' : 'Super Admin',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
-                    ),
+                  FutureBuilder<DocumentSnapshot>(
+                    future: _firestore.collection('Super-Admin').doc(widget.uid).get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Container(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                widget.type == 'Admin' ? 'Admin' : 'Super Admin',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                        return Container(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                widget.type == 'Admin' ? 'Admin' : 'Super Admin',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final userData = snapshot.data!.data() as Map<String, dynamic>;
+
+                      return UserProfileWidget(
+                        userType: widget.type,
+                        documentId: widget.uid,
+                        currentEmail: userData['email'] ?? 'No email',
+                        currentPassword: userData['password'] ?? '',
+                        profileImageUrl: userData['profile'] ?? '',
+                      );
+                    },
                   ),
                   SizedBox(height: widget.type == 'Super Admin' ? 90 : 10),
                   SizedBox(
@@ -373,5 +422,296 @@ class _DashboardPage extends State<DashboardPage> {
             }
           }));
         });
+  }
+}
+
+class UserProfileWidget extends StatefulWidget {
+  final String currentEmail;
+  final String currentPassword;
+  final String profileImageUrl;
+  final String documentId;
+  final String userType; // "Admin" or "Super Admin"
+
+  const UserProfileWidget({
+    Key? key,
+    required this.currentEmail,
+    required this.currentPassword,
+    required this.profileImageUrl,
+    required this.documentId,
+    required this.userType,
+  }) : super(key: key);
+
+  @override
+  _UserProfileWidgetState createState() => _UserProfileWidgetState();
+}
+
+class _UserProfileWidgetState extends State<UserProfileWidget> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = widget.currentEmail;
+    _passwordController.text = widget.currentPassword;
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _showUserSettingsDialog() {
+    _emailController.text = widget.currentEmail;
+    _passwordController.text = widget.currentPassword;
+    _confirmPasswordController.clear();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.settings, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('User Settings'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+                          if (result != null && result.files.single.path != null) {
+                            File file = File(result.files.single.path!);
+                            String fileName = path.basename(file.path);
+
+                            try {
+                              setState(() {
+                                _isLoading = true;
+                              });
+
+                              final ref = FirebaseStorage.instance.ref().child('profile_images/$fileName');
+                              await ref.putFile(file);
+                              final downloadUrl = await ref.getDownloadURL();
+
+                              await _firestore.collection('Super-Admin').doc(widget.documentId).update({
+                                'profile': downloadUrl,
+                              });
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Profile image updated!'), backgroundColor: Colors.green),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to upload image: $e'), backgroundColor: Colors.red),
+                              );
+                            } finally {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                            }
+                          }
+                        },
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey[300],
+                            border: Border.all(color: Colors.blue, width: 2),
+                          ),
+                          child: widget.profileImageUrl.isNotEmpty
+                              ? ClipOval(
+                                  child: Image.network(
+                                    widget.profileImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(Icons.person, size: 40, color: Colors.grey[600]);
+                                    },
+                                  ),
+                                )
+                              : Icon(Icons.person, size: 40, color: Colors.grey[600]),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text('Tap to change picture', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      SizedBox(height: 24),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Please enter an email';
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'New Password',
+                          prefixIcon: Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        obscureText: _obscurePassword,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Please enter a password';
+                          if (value.length < 6) return 'Password must be at least 6 characters';
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        obscureText: _obscureConfirmPassword,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Please confirm your password';
+                          if (value != _passwordController.text) return 'Passwords do not match';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : () => _updateUserSettings(setState),
+                  child: _isLoading ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text('Save Changes'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateUserSettings(StateSetter setState) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _firestore.collection('Super-Admin').doc(widget.documentId).update({
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Settings updated successfully!'), backgroundColor: Colors.green),
+      );
+
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating settings: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (widget.userType == 'Super Admin') // Only show avatar for Super Admin
+            GestureDetector(
+              onTap: _showUserSettingsDialog,
+              child: Container(
+                width: 50,
+                height: 50,
+                margin: EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue[100],
+                  border: Border.all(color: Colors.blue, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: widget.profileImageUrl.isNotEmpty
+                    ? ClipOval(
+                        child: Image.network(
+                          widget.profileImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 30, color: Colors.blue),
+                        ),
+                      )
+                    : Icon(Icons.person, size: 30, color: Colors.blue),
+              ),
+            ),
+          Text(
+            widget.userType == 'Admin' ? 'Admin' : 'Super Admin',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+          ),
+        ],
+      ),
+    );
   }
 }
