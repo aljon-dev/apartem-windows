@@ -25,125 +25,144 @@ class TransactionDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    IconData statusIcon;
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('sales_record').doc(id).get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
-    switch (status.toLowerCase()) {
-      case 'paid':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'under review':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_top;
-        break;
-      default:
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-    }
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Scaffold(body: Center(child: Text('Transaction not found.')));
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Transaction Details"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  Text(
-                    "$month $year",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Icon(statusIcon, color: statusColor, size: 60),
-                  Text(
-                    "Transaction ${status.toUpperCase()}",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Text("Date: $datetime"),
-            const SizedBox(height: 10),
-            Text("Payer Name: ${payerName.isEmpty ? 'N/A' : payerName}"),
-            const SizedBox(height: 10),
-            Text("Amount: ₱ $rentalCost"),
-            const SizedBox(height: 10),
-            Text("Status: $status"),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 10),
-            const Text(
-              "Proof of Payment:",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            proofUrl.isNotEmpty && proofUrl != "N/A"
-                ? GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FullScreenImageViewer(imageUrl: proofUrl),
-                        ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        proofUrl,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Text("Failed to load image."),
-                      ),
-                    ),
-                  )
-                : const Text("No proof of payment uploaded."),
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final paymentType = data['payment_type'] ?? 'N/A';
+        final paymentMode = data['payment_mode'] ?? 'N/A';
+        final amountPaid = data['amount_paid'] ?? '0';
+        final balance = data['balance'] ?? '0';
+
+        Color statusColor;
+        IconData statusIcon;
+
+        switch (status.toLowerCase()) {
+          case 'paid':
+            statusColor = Colors.green;
+            statusIcon = Icons.check_circle;
+            break;
+          case 'under review':
+            statusColor = Colors.orange;
+            statusIcon = Icons.hourglass_top;
+            break;
+          default:
+            statusColor = Colors.red;
+            statusIcon = Icons.cancel;
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text("Transaction Details")),
+          body: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => updateStatus(context, 'unpaid'),
-                    icon: const Icon(Icons.cancel),
-                    label: const Text("Unpaid"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
+                Center(
+                  child: Column(
+                    children: [
+                      Text(
+                        "$month $year",
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Icon(statusIcon, color: statusColor, size: 60),
+                      Text(
+                        "Transaction ${status.toUpperCase()}",
+                        style: TextStyle(fontSize: 16, color: statusColor, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => updateStatus(context, 'paid'),
-                    icon: const Icon(Icons.check),
-                    label: const Text("Paid"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
+                const SizedBox(height: 30),
+                Text("Date: $datetime"),
+                const SizedBox(height: 10),
+                Text("Payer Name: ${payerName.isEmpty ? 'N/A' : payerName}"),
+                const SizedBox(height: 10),
+                Text("Rental Cost: ₱ $rentalCost"),
+                const SizedBox(height: 10),
+                Text("Amount Paid: ₱ $amountPaid"),
+                const SizedBox(height: 10),
+                Text("Remaining Balance: ₱ $balance"),
+                const SizedBox(height: 10),
+                Text("Payment Mode: $paymentMode"),
+                const SizedBox(height: 10),
+                Text("Payment Type: $paymentType"),
+                const SizedBox(height: 10),
+                Text("Status: $status"),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 10),
+                const Text("Proof of Payment:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                proofUrl.isNotEmpty && proofUrl != "N/A"
+                    ? GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FullScreenImageViewer(imageUrl: proofUrl),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            proofUrl,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Text("Failed to load image."),
+                          ),
+                        ),
+                      )
+                    : const Text("No proof of payment uploaded."),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: status.toLowerCase() == 'paid' ? null : () => updateStatus(context, 'unpaid'),
+                        icon: const Icon(Icons.cancel),
+                        label: const Text("Unpaid"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(50),
+                          disabledBackgroundColor: Colors.red.shade200,
+                          disabledForegroundColor: Colors.white70,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: status.toLowerCase() == 'paid' ? null : () => updateStatus(context, 'paid'),
+                        icon: const Icon(Icons.check),
+                        label: const Text("Paid"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(50),
+                          disabledBackgroundColor: Colors.green.shade200,
+                          disabledForegroundColor: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -162,7 +181,6 @@ class TransactionDetailsPage extends StatelessWidget {
   }
 }
 
-// ✅ Full-screen image viewer with zoom
 class FullScreenImageViewer extends StatelessWidget {
   final String imageUrl;
 

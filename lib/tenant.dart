@@ -41,81 +41,123 @@ class _TenantPageState extends State<TenantPage> {
   String vacantValue = 'Yes';
   String? paymentValue;
   Future<void> _AssignTenantUserBuilding(int buildingNumber) async {
-    // Form controllers
-    final TextEditingController firstNameController = TextEditingController();
-    final TextEditingController lastNameController = TextEditingController();
-    final TextEditingController middleNameController = TextEditingController();
-    final TextEditingController usernameController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
-    final TextEditingController contactController = TextEditingController();
-    final TextEditingController rentalFeeController = TextEditingController();
-    final TextEditingController emailController = TextEditingController();
+    final firstNameController = TextEditingController();
+    final lastNameController = TextEditingController();
+    final middleNameController = TextEditingController();
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    final contactController = TextEditingController();
+    final rentalFeeController = TextEditingController();
+    final emailController = TextEditingController();
 
     String? selectedUnitNumber;
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     bool isShowPassword = false;
 
+    // Get available units first
+    final unitsSnapshot = await _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).get();
+
+    if (unitsSnapshot.docs.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No available units'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    String? selectedBuilding;
+    List<String> availableUnits = [];
+
     await showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            // Move this inside but make it a state variable
-
+          builder: (BuildContext context, StateSetter dialogSetState) {
             return AlertDialog(
-              title: const Text('Assign Tenant User Building'),
+              title: const Text('Assign Tenant'),
               content: SingleChildScrollView(
                 child: Form(
                   key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Unit Number Dropdown
                       StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).snapshots(),
-                        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        stream: _firestore.collection('building').orderBy('building').snapshots(),
+                        builder: (context, snapshot) {
                           if (snapshot.hasError) {
-                            return const Text('Something went wrong');
+                            return const Text('Error loading buildings');
                           }
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                            return const Text('No available units');
+                          if (!snapshot.hasData) {
+                            return const CircularProgressIndicator();
                           }
 
-                          final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                          final buildings = snapshot.data!.docs;
+                          final sortedUnits = [...availableUnits] // copy the list
+                            ..sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+                          return Column(
+                            children: [
+                              DropdownButtonFormField<String>(
+                                value: selectedBuilding,
+                                decoration: InputDecoration(
+                                  labelText: 'Select Building',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.filter_alt),
+                                ),
+                                items: buildings.map((doc) {
+                                  final number = doc['building'].toString();
+                                  return DropdownMenuItem(
+                                    value: number,
+                                    child: Text('Building $number'),
+                                  );
+                                }).toList(),
+                                onChanged: (value) async {
+                                  dialogSetState(() {
+                                    selectedBuilding = value;
+                                    selectedUnitNumber = null;
+                                    availableUnits = [];
+                                  });
 
-                          return DropdownButtonFormField<String>(
-                            value: selectedUnitNumber,
-                            hint: const Text('Select Unit Number'),
-                            decoration: const InputDecoration(
-                              labelText: 'Unit Number',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select a unit number';
-                              }
-                              return null;
-                            },
-                            items: unitNumbers.map((String unitNumber) {
-                              return DropdownMenuItem<String>(
-                                value: unitNumber,
-                                child: Text(unitNumber),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                selectedUnitNumber = newValue;
-                              });
-                            },
+                                  if (value != null) {
+                                    final unitSnap = await _firestore.collection('UnitNumber').where('building#', isEqualTo: int.parse(value)).where('isOccupied', isEqualTo: false).get();
+
+                                    dialogSetState(() {
+                                      availableUnits = unitSnap.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                                    });
+                                  }
+                                },
+                                validator: (value) => value == null ? 'Please select a building' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                value: selectedUnitNumber,
+                                decoration: const InputDecoration(
+                                  labelText: 'Select Unit',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: sortedUnits.map((unit) {
+                                  return DropdownMenuItem(
+                                    value: unit,
+                                    child: Text('Unit $unit'),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  dialogSetState(() {
+                                    selectedUnitNumber = value;
+                                  });
+                                },
+                                validator: (value) => value == null ? 'Please select a unit number' : null,
+                              ),
+                            ],
                           );
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // First Name Field
                       TextFormField(
                         controller: firstNameController,
                         decoration: const InputDecoration(
@@ -130,8 +172,6 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // Last Name Field
                       TextFormField(
                         controller: lastNameController,
                         decoration: const InputDecoration(
@@ -146,8 +186,6 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // Middle Name Field
                       TextFormField(
                         controller: middleNameController,
                         decoration: const InputDecoration(
@@ -156,22 +194,6 @@ class _TenantPageState extends State<TenantPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
-                      // Email Field
-                      TextFormField(
-                        controller: emailController,
-                        decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Email'),
-                        validator: (value) {
-                          if (value!.isEmpty) {
-                            return 'Please Put your email';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Username Field
                       TextFormField(
                         controller: usernameController,
                         decoration: const InputDecoration(
@@ -186,17 +208,15 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // Password Field - FIXED
                       TextFormField(
                         controller: passwordController,
-                        obscureText: !isShowPassword, // Fixed logic
+                        obscureText: !isShowPassword,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             onPressed: () {
-                              setState(() {
+                              dialogSetState(() {
                                 isShowPassword = !isShowPassword;
                               });
                             },
@@ -216,11 +236,28 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-
-                      // Contact Field
+                      TextFormField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email Address',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter email address';
+                          }
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: contactController,
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.phone,
                         decoration: const InputDecoration(
                           labelText: 'Contact Number',
                           border: OutlineInputBorder(),
@@ -233,7 +270,6 @@ class _TenantPageState extends State<TenantPage> {
                         },
                       ),
                       const SizedBox(height: 16),
-
                       TextFormField(
                         controller: rentalFeeController,
                         keyboardType: TextInputType.number,
@@ -253,63 +289,104 @@ class _TenantPageState extends State<TenantPage> {
                 ),
               ),
               actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     if (formKey.currentState!.validate()) {
+                      final username = usernameController.text.trim();
+                      final contact = contactController.text.trim();
+
+                      final existingUser = await _firestore.collection('tenant').where('username', isEqualTo: username).get();
+                      if (existingUser.docs.isNotEmpty) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Username already exists'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
+                      // Validate contact number: must be exactly 11 digits and numeric
+                      final contactRegExp = RegExp(r'^\d{11}$');
+                      if (!contactRegExp.hasMatch(contact)) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Invalid contact number (must be 11 digits)'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+
                       try {
-                        // Add tenant to Firestore
-                        await FirebaseFirestore.instance.collection('tenant').add({'firstname': firstNameController.text, 'lastname': lastNameController.text, 'middlename': middleNameController.text, 'email': emailController.text, 'unitnumber': selectedUnitNumber, 'username': usernameController.text, 'password': passwordController.text, 'contactnumber': contactController.text, 'buildingnumber': buildingNumber.toString(), 'rentalfee': int.parse(rentalFeeController.text), 'profile': ''});
+                        final tenantDoc = await _firestore.collection('tenant').add({
+                          'firstname': firstNameController.text,
+                          'lastname': lastNameController.text,
+                          'middlename': middleNameController.text,
+                          'unitnumber': selectedUnitNumber,
+                          'username': username,
+                          'password': passwordController.text,
+                          'contactnumber': contact,
+                          'buildingnumber': selectedBuilding,
+                          'rentalfee': int.parse(rentalFeeController.text),
+                          'email': emailController.text,
+                        });
 
-                        // Update unit occupancy status
-                        final unitQuery = await FirebaseFirestore.instance
-                            .collection('UnitNumber')
-                            .where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber.toString()))
-                            .where('building#', isEqualTo: buildingNumber) // Fixed: use buildingNumber parameter directly
-                            .get();
-
+                        final unitQuery = await _firestore.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber!)).where('building#', isEqualTo: int.tryParse(selectedBuilding!)).get();
                         if (unitQuery.docs.isNotEmpty) {
                           await unitQuery.docs.first.reference.update({'isOccupied': true});
                         }
 
-                        // Show success message
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tenant assigned successfully'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        final now = DateTime.now();
+                        final currentMonth = DateFormat('MMMM').format(now);
+                        final currentYear = now.year.toString();
+                        final formattedDateTime = DateFormat('yyyy-MM-dd – HH:mm').format(now);
+                        final dueDate = now.add(const Duration(days: 30));
+                        final formattedDueDate = DateFormat('dd/MM/yyyy').format(dueDate);
 
-                        Navigator.of(context).pop();
+                        await _firestore.collection('sales_record').add({
+                          'datetime': formattedDateTime,
+                          'due_date': formattedDueDate,
+                          'due_day': dueDate.day,
+                          'due_month_number': dueDate.month,
+                          'due_year': dueDate.year,
+                          'month': currentMonth,
+                          'payer_name': '${firstNameController.text} ${lastNameController.text}',
+                          'rental_cost': int.parse(rentalFeeController.text),
+                          'status': 'Unpaid',
+                          'uid': tenantDoc.id,
+                          'year': currentYear,
+                        });
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tenant assigned successfully'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error assigning tenant: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
                   child: const Text('Assign Tenant'),
                 ),
               ],
@@ -317,16 +394,7 @@ class _TenantPageState extends State<TenantPage> {
           },
         );
       },
-    ).then((_) {
-      // Dispose controllers after dialog is closed
-      firstNameController.dispose();
-      lastNameController.dispose();
-      middleNameController.dispose();
-      usernameController.dispose();
-      passwordController.dispose();
-      contactController.dispose();
-      rentalFeeController.dispose(); // Added missing dispose
-    });
+    );
   }
 
   Future<void> ResetPassword(BuildContext context, QueryDocumentSnapshot doc) async {

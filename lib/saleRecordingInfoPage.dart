@@ -29,7 +29,17 @@ class saleInfo {
   factory saleInfo.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> info = doc.data() as Map<String, dynamic>;
 
-    return saleInfo(id: doc.id, datetime: info['datetime'], month: info['month'], payer_name: info['payer_name'], rental_cost: info['rental_cost'], status: info['status'], uid: info['uid'], year: info['year'], proofUrl: info['imageUrl'] ?? 'N/A');
+    return saleInfo(
+      id: doc.id,
+      datetime: info['datetime'],
+      month: info['month'],
+      payer_name: info['payer_name'],
+      rental_cost: info['rental_cost'].toString(), // ✅ Fixed here
+      status: info['status'],
+      uid: info['uid'],
+      year: info['year'],
+      proofUrl: info['imageUrl'] ?? 'N/A',
+    );
   }
 
   Map<String, dynamic> toFireStore() {
@@ -80,7 +90,8 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
 
     int total = 0;
     for (var doc in snapshot.docs) {
-      total += int.parse(doc['rental_cost']);
+      final paid = int.tryParse(doc['amount_paid']?.toString() ?? '0') ?? 0;
+      total += paid;
     }
 
     setState(() {
@@ -94,162 +105,223 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
     getAnnualComputation();
   }
 
+  Future<void> ViewProof(String imageUrl) async {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Container(
+            width: double.infinity,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Proof of Image',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                imageUrl.isEmpty
+                    ? const Text(
+                        'No Image Proof Found',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          imageUrl,
+                          height: 250,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close),
+                  label: Text('Close'),
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> sendMonthlyBills() async {
     final TextEditingController rentalFee = TextEditingController();
-    List Dates = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    List Year = [
-      '2023',
-      '2024',
-      '2025',
-      '2026',
-      '2027',
-      '2028',
-      '2029',
-      '2030',
-    ];
-
-    String? selectedMonth;
-    String? selectedYear;
+    final TextEditingController partialAmount = TextEditingController();
+    String selectedMonth = DateFormat('MMMM').format(DateTime.now()); // Auto-filled
+    String selectedYear = DateTime.now().year.toString(); // Auto-filled
+    String? selectedPaymentMode = 'Cash';
     DateTime selectedDueDate = DateTime.now().add(const Duration(days: 30));
+
+    // Check for duplicate billing
+    final existing = await _firestore.collection('sales_record').where('uid', isEqualTo: widget.uid).where('month', isEqualTo: selectedMonth).where('year', isEqualTo: selectedYear).get();
+
+    if (existing.docs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A bill already exists for this month.')),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Send Monthly Bill'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Month Dropdown
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Month',
-                        border: OutlineInputBorder(),
-                      ),
-                      value: selectedMonth,
-                      items: Dates.map<DropdownMenuItem<String>>((month) {
-                        return DropdownMenuItem<String>(
-                          value: month,
-                          child: Text(month),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedMonth = newValue;
-                        });
-                      },
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Send Monthly Bill'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Month
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Month',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 15),
+                    value: selectedMonth,
+                    items: List.generate(12, (i) {
+                      final m = DateFormat('MMMM').format(DateTime(0, i + 1));
+                      return DropdownMenuItem(value: m, child: Text(m));
+                    }),
+                    onChanged: (val) => setState(() => selectedMonth = val!),
+                  ),
+                  const SizedBox(height: 10),
 
-                    // Year Dropdown
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Year',
-                        border: OutlineInputBorder(),
-                      ),
-                      value: selectedYear,
-                      items: Year.map<DropdownMenuItem<String>>((year) {
-                        return DropdownMenuItem<String>(
-                          value: year,
-                          child: Text(year),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedYear = newValue;
-                        });
-                      },
+                  // Year
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Year',
+                      border: OutlineInputBorder(),
                     ),
-                    const SizedBox(height: 15),
+                    value: selectedYear,
+                    items: List.generate(8, (i) {
+                      final y = (2023 + i).toString();
+                      return DropdownMenuItem(value: y, child: Text(y));
+                    }),
+                    onChanged: (val) => setState(() => selectedYear = val!),
+                  ),
+                  const SizedBox(height: 10),
 
-                    // Rental Fee TextField
-                    TextField(
-                      controller: rentalFee,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Rental Fee',
-                        border: OutlineInputBorder(),
-                        prefixText: '₱ ',
-                      ),
+                  // Rental Fee
+                  TextField(
+                    controller: rentalFee,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Rental Fee',
+                      border: OutlineInputBorder(),
+                      prefixText: '₱ ',
                     ),
-                    const SizedBox(height: 15),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: partialAmount,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Partial Payment (Optional)',
+                      border: OutlineInputBorder(),
+                      prefixText: '₱ ',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Mode of Payment
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Mode',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedPaymentMode,
+                    items: ['Cash', 'GCash'].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
+                    onChanged: (val) => setState(() => selectedPaymentMode = val),
+                  ),
+                  const SizedBox(height: 10),
 
-                    // Due Date Picker
-                    Row(
-                      children: [
-                        const Text('Due Date: '),
-                        TextButton(
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDueDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (picked != null && picked != selectedDueDate) {
-                              setState(() {
-                                selectedDueDate = picked;
-                              });
-                            }
-                          },
-                          child: Text('${selectedDueDate.day}/${selectedDueDate.month}/${selectedDueDate.year}'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  // Due Date
+                  Row(
+                    children: [
+                      const Text('Due Date:'),
+                      TextButton(
+                        onPressed: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDueDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() => selectedDueDate = picked);
+                          }
+                        },
+                        child: Text(DateFormat('dd/MM/yyyy').format(selectedDueDate)),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Partial payment logic is not yet implemented.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (selectedMonth != null && selectedYear != null && rentalFee.text.isNotEmpty) {
-                      try {
-                        // Store both formatted datetime and individual date components
-                        String formattedDateTime = DateFormat('yyyy-MM-dd - HH:mm').format(selectedDueDate);
-                        String formattedDueDate = DateFormat('dd/MM/yyyy').format(selectedDueDate);
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (rentalFee.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Enter rental fee')),
+                    );
+                    return;
+                  }
+                  final isPartial = partialAmount.text.isNotEmpty;
 
-                        await _firestore.collection('sales_record').add({
-                          'datetime': formattedDateTime,
-                          'due_date': formattedDueDate,
-                          'imageUrl': '',
-                          'month': selectedMonth,
-                          'payer_name': '',
-                          'rental_cost': rentalFee.text,
-                          'status': 'pending',
-                          'uid': widget.uid,
-                          'year': selectedYear,
-                        });
+                  final record = {
+                    'datetime': DateFormat('yyyy-MM-dd – HH:mm').format(DateTime.now()),
+                    'month': selectedMonth,
+                    'year': selectedYear,
+                    'due_date': DateFormat('dd/MM/yyyy').format(selectedDueDate),
+                    'due_day': selectedDueDate.day,
+                    'due_month_number': selectedDueDate.month,
+                    'due_year': selectedDueDate.year,
+                    'rental_cost': rentalFee.text,
+                    'amount_paid': isPartial ? partialAmount.text : rentalFee.text,
+                    'balance': isPartial ? (int.parse(rentalFee.text) - int.parse(partialAmount.text)).toString() : '0',
+                    'payment_mode': selectedPaymentMode,
+                    'payment_type': isPartial ? 'partial' : 'full',
+                    'status': isPartial ? 'partial' : 'pending',
+                    'payer_name': '',
+                    'uid': widget.uid,
+                  };
 
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Monthly bill sent successfully!')),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error sending bill: $e')),
-                        );
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please fill all fields')),
-                      );
-                    }
-                  },
-                  child: const Text('Send Bill'),
-                ),
-              ],
-            );
-          },
-        );
+                  await _firestore.collection('sales_record').add(record);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bill sent!')),
+                  );
+                },
+                child: const Text('Send Bill'),
+              ),
+            ],
+          );
+        });
       },
     );
   }
@@ -272,6 +344,26 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Container(
+                  width: 15,
+                  height: 15,
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 6),
+                const Text('Paid'),
+                const SizedBox(width: 20),
+                Container(
+                  width: 15,
+                  height: 15,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 6),
+                const Text('Unpaid'),
+              ],
+            ),
+            const SizedBox(height: 10),
             Text('Tenant name : ${widget.firstname}, ${widget.lastname}'),
             const SizedBox(height: 10),
             Text('Building Number: ${widget.buildnumber}'),
@@ -297,133 +389,27 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                             final salelist = sales[index];
 
                             return Card(
+                              color: salelist.status.toLowerCase() == 'paid' ? Colors.green.shade100 : Colors.red.shade100,
                               child: InkWell(
                                 onTap: () {
                                   showDialog(
                                     context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: Text("${salelist.month} ${salelist.year}"),
-                                        content: SingleChildScrollView(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Center(
-                                                child: Icon(
-                                                  salelist.status.toLowerCase() == 'paid'
-                                                      ? Icons.check_circle
-                                                      : salelist.status.toLowerCase() == 'under review'
-                                                          ? Icons.hourglass_top
-                                                          : Icons.cancel,
-                                                  size: 60,
-                                                  color: salelist.status.toLowerCase() == 'paid'
-                                                      ? Colors.green
-                                                      : salelist.status.toLowerCase() == 'under review'
-                                                          ? Colors.orange
-                                                          : Colors.red,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              Text("Date: ${salelist.datetime}"),
-                                              Text("Payer Name: ${salelist.payer_name.isEmpty ? "N/A" : salelist.payer_name}"),
-                                              Text("Amount: ₱ ${salelist.rental_cost}"),
-                                              Text("Status: ${salelist.status}"),
-                                              const SizedBox(height: 10),
-                                              const Divider(),
-                                              const SizedBox(height: 10),
-                                              salelist.proofUrl.isNotEmpty && salelist.proofUrl != "N/A"
-                                                  ? Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        const Text("Proof of Payment:", style: TextStyle(fontWeight: FontWeight.bold)),
-                                                        const SizedBox(height: 8),
-                                                        ClipRRect(
-                                                          borderRadius: BorderRadius.circular(10),
-                                                          child: GestureDetector(
-                                                            onTap: () {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder: (_) => FullScreenImageViewer(imageUrl: salelist.proofUrl),
-                                                                ),
-                                                              );
-                                                            },
-                                                            child: ClipRRect(
-                                                              borderRadius: BorderRadius.circular(10),
-                                                              child: Image.network(
-                                                                salelist.proofUrl,
-                                                                height: 200,
-                                                                fit: BoxFit.cover,
-                                                                errorBuilder: (context, error, stackTrace) => const Text("Image failed to load"),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    )
-                                                  : const Text("No proof of payment uploaded."),
-                                            ],
-                                          ),
-                                        ),
-                                        actions: [
-                                          if (salelist.status != 'paid')
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                ElevatedButton.icon(
-                                                  onPressed: () async {
-                                                    await _firestore.collection('sales_record').doc(salelist.id).update({
-                                                      'status': 'unpaid',
-                                                    });
-                                                    Navigator.of(context).pop();
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      const SnackBar(content: Text("Status updated to Unpaid")),
-                                                    );
-                                                  },
-                                                  icon: const Icon(Icons.cancel),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.red,
-                                                    foregroundColor: Colors.white,
-                                                  ),
-                                                  label: const Text("Unpaid"),
-                                                ),
-                                                ElevatedButton.icon(
-                                                  onPressed: () async {
-                                                    // UPDATE STATUS TO PAID
-                                                    await _firestore.collection('sales_record').doc(salelist.id).update({
-                                                      'status': 'paid',
-                                                    });
-                                                    Navigator.of(context).pop();
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      const SnackBar(content: Text("Status updated to Paid")),
-                                                    );
-                                                  },
-                                                  icon: const Icon(Icons.check),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.green,
-                                                    foregroundColor: Colors.white,
-                                                  ),
-                                                  label: const Text("Paid"),
-                                                ),
-                                              ],
-                                            ),
-                                          if (salelist.status == 'paid')
-                                            Container(
-                                              child: ElevatedButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.red,
-                                                      foregroundColor: Colors.white,
-                                                      shape: const RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                                                      )),
-                                                  child: const Text('Close')),
-                                            ), // Empty container for paid status
-                                        ],
-                                      );
-                                    },
+                                    builder: (_) => Dialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      backgroundColor: Colors.purple.shade50,
+                                      child: TransactionDetailsPage(
+                                        id: salelist.id,
+                                        month: salelist.month,
+                                        year: salelist.year,
+                                        datetime: salelist.datetime,
+                                        payerName: salelist.payer_name,
+                                        rentalCost: salelist.rental_cost,
+                                        status: salelist.status,
+                                        proofUrl: salelist.proofUrl,
+                                      ),
+                                    ),
                                   );
                                 },
                                 child: Padding(

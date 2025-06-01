@@ -15,6 +15,7 @@ import 'package:bogsandmila/vacancy.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -41,6 +42,62 @@ class _DashboardPage extends State<DashboardPage> {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  Future<void> AutomaticSendPayment() async {
+    final DateTime now = DateTime.now();
+    final int currentMonth = now.month;
+    final int currentYear = now.year;
+
+    final QuerySnapshot tenantSnapshot = await _firestore.collection('tenant').get();
+
+    for (final doc in tenantSnapshot.docs) {
+      final String uid = doc.id;
+      final int rentalCost = doc['rentalfee'];
+      final String payerName = doc['firstname'];
+      final String? unitNumber = doc.data().toString().contains('unitnumber') ? doc['unitnumber'] : null;
+      final int dueDay = doc.data().toString().contains('due_day') ? doc['due_day'] : 30; // fallback to 30
+
+      // Check if sales record already exists for this month/year/user
+      final QuerySnapshot existing = await _firestore.collection('sales_record').where('uid', isEqualTo: uid).where('due_month_number', isEqualTo: currentMonth).where('due_year', isEqualTo: currentYear).get();
+
+      if (existing.docs.isEmpty) {
+        final String formattedDateTime = DateFormat("yyyy-MM-dd – HH:mm").format(now);
+        final String dueDateFormatted = "$dueDay/${currentMonth.toString().padLeft(2, '0')}/$currentYear";
+
+        await _firestore.collection('sales_record').add({
+          'Amount': '', // blank until payment
+          'GcashNumber': '',
+          'ReferenceNumber': '',
+          'buildingnumber': null,
+          'datetime': formattedDateTime,
+          'due_date': dueDateFormatted,
+          'due_day': dueDay,
+          'due_month_number': currentMonth,
+          'due_year': currentYear,
+          'imageUrl': '',
+          'month': _getMonthName(currentMonth),
+          'payer_name': payerName,
+          'rental_cost': rentalCost,
+          'status': 'Unpaid',
+          'uid': uid,
+          'unitnumber': unitNumber,
+          'year': currentYear.toString(),
+        });
+      }
+    }
+  }
+
+  String _getMonthName(int monthNumber) {
+    const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[monthNumber];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    AutomaticSendPayment();
   }
 
   @override
@@ -295,8 +352,6 @@ class _DashboardPage extends State<DashboardPage> {
               );
             } else if (id == 3) {
               return RequestPage(uid: widget.uid, type: widget.type);
-            } else if (id == 4) {
-              return SalesRecordPage();
             } else if (id == 5) {
               return VacancyPage(uid: widget.uid, type: widget.type);
             } else if (id == 6) {
