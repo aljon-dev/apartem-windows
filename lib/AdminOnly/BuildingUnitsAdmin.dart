@@ -1,12 +1,10 @@
-import 'package:bogsandmila/archive.dart';
-import 'package:bogsandmila/tenant.dart';
+import 'package:bogsandmila/AdminOnly/TenantPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class buildingUnits extends StatefulWidget {
-  final userid;
-  const buildingUnits({super.key, required this.userid});
+  const buildingUnits({super.key});
 
   @override
   State<buildingUnits> createState() => _buildingUnits();
@@ -125,7 +123,7 @@ class _buildingUnits extends State<buildingUnits> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Update Building $BuildingNumber',
+                  'Edit Building $BuildingNumber',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -193,7 +191,6 @@ class _buildingUnits extends State<buildingUnits> {
 
                               try {
                                 await _firestore.collection('UnitNumber').add({
-                                  'building#': int.parse(BuildingNumber),
                                   'buildingId': BuildingId,
                                   'unitNumber': int.parse(newUnitNumberController.text),
                                   'unitType': newUnitTypeController.text,
@@ -458,217 +455,193 @@ class _buildingUnits extends State<buildingUnits> {
         });
   }
 
-  Future<void> DeleteBuilding(BuildContext context, String buildingId, int buildingNumber) async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Deleting a Building'),
-          content: const Text('Are you sure you want to delete this building? All tenants will be archived and units will be deleted.'),
-          actions: [
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-
-                final firestore = FirebaseFirestore.instance;
-                final batch = firestore.batch();
-
-                final tenantSnap = await firestore.collection('tenant').where('buildingnumber', isEqualTo: buildingNumber.toString()).get();
-
-                for (var doc in tenantSnap.docs) {
-                  final archiveRef = firestore.collection('Archive').doc(doc.id);
-                  batch.set(archiveRef, {
-                    ...doc.data() as Map<String, dynamic>,
-                  });
-                  batch.delete(doc.reference);
-                }
-
-                // 🔹 2. Delete UnitNumber entries
-                final unitSnap = await firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).get();
-
-                for (var doc in unitSnap.docs) {
-                  batch.delete(doc.reference);
-                }
-
-                // 🔹 3. Delete the building
-                batch.delete(firestore.collection('building').doc(buildingId));
-
-                // 🔹 4. Commit all batched operations
-                await batch.commit();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Building, units, and tenants handled successfully.')),
-                );
-              },
-              child: const Text('Yes'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.black),
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.black,
-                ),
-                label: const Text('Back'))
-          ],
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Row(
+            children: [
+              TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: TextButton.styleFrom(foregroundColor: Colors.black),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.black,
+                  ),
+                  label: const Text('Back'))
+            ],
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            // Top Header Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Building',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => AddBuilding(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Building'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => ArchivePage()));
-                      },
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                      child: const Text('Archive'),
-                    )
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Legend
-            Row(
-              children: const [
-                Icon(Icons.circle, color: Colors.green, size: 12),
-                SizedBox(width: 4),
-                Text('Has Vacancy'),
-                SizedBox(width: 12),
-                Icon(Icons.circle, color: Colors.red, size: 12),
-                SizedBox(width: 4),
-                Text('Fully Occupied'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // GridView of Building Cards
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('building').orderBy('building').snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return const Center(child: Text('Error loading buildings'));
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                  final buildings = snapshot.data!.docs;
-
-                  return GridView.builder(
-                    itemCount: buildings.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.9,
-                    ),
-                    itemBuilder: (context, index) {
-                      final building = buildings[index];
-
-                      return StreamBuilder<QuerySnapshot>(
-                        stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: building['building']).snapshots(),
-                        builder: (context, unitSnapshot) {
-                          if (!unitSnapshot.hasData) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-
-                          final units = unitSnapshot.data!.docs;
-                          final totalUnits = units.length;
-                          final occupied = units.where((u) => u['isOccupied'] == true).length;
-                          final isVacant = occupied < totalUnits;
-
-                          return Card(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 4,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Icon(Icons.apartment, color: isVacant ? Colors.green : Colors.red, size: 40),
-                                  Text(
-                                    'Building No. ${building['building']}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  Text(
-                                    '$occupied/$totalUnits',
-                                    style: TextStyle(
-                                      color: isVacant ? Colors.green : Colors.red,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.push(context, MaterialPageRoute(builder: (context) => TenantPage(buildingnumber: building['building'].toString(), userid: widget.userid)));
-                                        },
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                                        child: const Text('View'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => EditShowData(building.id, building['building'].toString()),
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                                        child: const Text('Update'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => DeleteBuilding(context, building.id, building['building']),
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+            const Padding(
+              padding: EdgeInsets.all(10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Building Units',
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                ],
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.circle, size: 12, color: Colors.green),
+                      SizedBox(width: 4),
+                      Text('Has Vacancy', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  SizedBox(width: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.circle, size: 12, color: Colors.red),
+                      SizedBox(width: 4),
+                      Text('Fully Occupied', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            StreamBuilder<QuerySnapshot>(
+                stream: _firestore.collection('building').orderBy('building').snapshots(),
+                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error'));
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final buildingSnapshot = snapshot.data!.docs;
+                  return Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: _firestore.collection('building').orderBy('building').snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) return const Center(child: Text('Error'));
+                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                        final buildings = snapshot.data!.docs;
+                        return GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.75),
+                          itemCount: buildings.length,
+                          itemBuilder: (context, index) {
+                            final building = buildings[index];
+                            final buildingNumber = building['building'];
+
+                            return StreamBuilder<QuerySnapshot>(
+                              stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).snapshots(),
+                              builder: (context, unitSnapshot) {
+                                if (!unitSnapshot.hasData) return const SizedBox();
+                                final totalUnits = unitSnapshot.data!.docs.length;
+
+                                return StreamBuilder<QuerySnapshot>(
+                                  stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).snapshots(),
+                                  builder: (context, availableSnapshot) {
+                                    if (!availableSnapshot.hasData) return const SizedBox();
+                                    final available = availableSnapshot.data!.docs.length;
+                                    final occupied = totalUnits - available;
+                                    final fullyOccupied = available == 0;
+
+                                    return Card(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 3,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Icon(Icons.apartment, size: 30, color: fullyOccupied ? Colors.red : Colors.green),
+                                            const SizedBox(height: 8),
+                                            Text('Building No. $buildingNumber', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            Text(
+                                              '$occupied/$totalUnits',
+                                              style: TextStyle(
+                                                color: fullyOccupied ? Colors.red : Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+
+                                            /// 🟦 View Button (on top)
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => TenantPage(
+                                                        buildingnumber: buildingNumber.toString(),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.blue,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                ),
+                                                child: const Text('View'),
+                                              ),
+                                            ),
+
+                                            const SizedBox(height: 8),
+
+                                            /// ⚫ Update Button (bottom)
+                                            // SizedBox(
+                                            //   width: double.infinity,
+                                            //   child: ElevatedButton.icon(
+                                            //     onPressed: () {
+                                            //       EditShowData(
+                                            //           building.id,
+                                            //           buildingNumber
+                                            //               .toString());
+                                            //     },
+                                            //     icon: const Icon(Icons.refresh,
+                                            //         size: 16),
+                                            //     label: const Text('Update'),
+                                            //     style: ElevatedButton.styleFrom(
+                                            //       backgroundColor:
+                                            //           Colors.black87,
+                                            //       foregroundColor: Colors.white,
+                                            //       shape: RoundedRectangleBorder(
+                                            //         borderRadius:
+                                            //             BorderRadius.circular(
+                                            //                 6),
+                                            //       ),
+                                            //     ),
+                                            //   ),
+                                            // ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  );
+                })
           ],
-        ),
-      ),
-    );
+        ));
   }
 }

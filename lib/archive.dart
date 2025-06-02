@@ -50,6 +50,7 @@ class _ArchivePageState extends State<ArchivePage> {
     final TextEditingController _contactNumberController = TextEditingController();
     final TextEditingController _rentalFeeController = TextEditingController();
     final TextEditingController _usernameController = TextEditingController();
+    final TextEditingController _emailController = TextEditingController();
 
     // Pre-fill the form with existing data
     _firstNameController.text = tenantData['firstname'] ?? '';
@@ -58,10 +59,11 @@ class _ArchivePageState extends State<ArchivePage> {
     _contactNumberController.text = tenantData['contactnumber'] ?? '';
     _rentalFeeController.text = (tenantData['rentalfee'] ?? 0).toString();
     _usernameController.text = tenantData['username'] ?? '';
-
+    _emailController.text = tenantData['email'] ?? '';
     // Initialize dropdown values
     String? selectedBuilding;
     String? selectedUnit = tenantData['unitnumber']?.toString();
+    String profile = tenantData['profile'].toString();
 
     return showDialog(
       context: context,
@@ -177,6 +179,29 @@ class _ArchivePageState extends State<ArchivePage> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: const Icon(Icons.email),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 16,
+                          ),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
                         controller: _contactNumberController,
                         decoration: InputDecoration(
                           labelText: 'Contact Number',
@@ -198,7 +223,6 @@ class _ArchivePageState extends State<ArchivePage> {
                         },
                       ),
                       const SizedBox(height: 24),
-
                       // Property Information Section
                       Container(
                         width: double.infinity,
@@ -461,10 +485,12 @@ class _ArchivePageState extends State<ArchivePage> {
                           'middlename': _middleNameController.text.trim(),
                           'contactnumber': _contactNumberController.text.trim(),
                           'buildingnumber': selectedBuilding ?? '0',
-                          'password': '123456789',
+                          'password': _firstNameController.text + _lastNameController.text + selectedUnit.toString() + selectedBuilding.toString(),
                           'unitnumber': selectedUnit ?? '0',
                           'rentalfee': int.tryParse(_rentalFeeController.text) ?? 0,
                           'username': _usernameController.text.trim(),
+                          'email': _emailController.text,
+                          'profile': profile,
                         };
 
                         await FirebaseFirestore.instance.collection('tenant').doc(tenantId).set(updatedTenantData);
@@ -516,83 +542,6 @@ class _ArchivePageState extends State<ArchivePage> {
     );
   }
 
-  Future<void> _showUnarchiveConfirmation(String tenantId, String tenantName) async {
-    _selectedTenantId = tenantId;
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Un-archive Tenant'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Are you sure you want to un-archive $tenantName?'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _reasonController,
-                decoration: const InputDecoration(
-                  labelText: 'Reason for un-archiving',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_reasonController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please provide a reason')),
-                  );
-                  return;
-                }
-
-                await _unarchiveTenant(tenantId);
-                Navigator.pop(context);
-              },
-              child: const Text('Confirm'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _unarchiveTenant(String tenantId) async {
-    try {
-      final doc = await FirebaseFirestore.instance.collection('Archive').doc(tenantId).get();
-
-      if (!doc.exists) {
-        throw Exception('Tenant not found in archive');
-      }
-
-      await FirebaseFirestore.instance.collection('tenant').doc(tenantId).set(doc.data()!);
-
-      await FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
-
-      _reasonController.clear();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tenant successfully un-archived'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Future<void> _showDeleteConfirmation(String tenantId, String tenantName) async {
     return showDialog(
       context: context,
@@ -639,6 +588,32 @@ class _ArchivePageState extends State<ArchivePage> {
         ),
       );
     }
+  }
+
+  void _showImageDialog(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getInitials(String firstName, String lastName) {
+    if (firstName.isEmpty && lastName.isEmpty) return '?';
+    if (firstName.isEmpty) return lastName[0].toUpperCase();
+    if (lastName.isEmpty) return firstName[0].toUpperCase();
+    return '${firstName[0].toUpperCase()}${lastName[0].toUpperCase()}';
   }
 
   @override
@@ -732,7 +707,9 @@ class _ArchivePageState extends State<ArchivePage> {
                               scrollDirection: Axis.horizontal,
                               child: DataTable(
                                 columns: const [
+                                  DataColumn(label: Text('Profile')),
                                   DataColumn(label: Text('Payer Name')),
+                                  DataColumn(label: Text('email')),
                                   DataColumn(label: Text('Building')),
                                   DataColumn(label: Text('Unit')),
                                   DataColumn(label: Text('Contact')),
@@ -742,7 +719,9 @@ class _ArchivePageState extends State<ArchivePage> {
                                   endIndex - startIndex,
                                   (index) {
                                     final doc = data[startIndex + index];
+                                    final profile = doc['profile'] ?? '';
                                     final firstname = doc['firstname'] ?? '';
+                                    final email = doc['email'] ?? '';
                                     final lastname = doc['lastname'] ?? '';
                                     final buildingnumber = doc['buildingnumber'] ?? '';
                                     final unitnumber = doc['unitnumber'] ?? '';
@@ -751,7 +730,13 @@ class _ArchivePageState extends State<ArchivePage> {
 
                                     return DataRow(
                                       cells: [
+                                        DataCell(_buildProfileWidget(
+                                          profile,
+                                          firstname,
+                                          lastname,
+                                        )),
                                         DataCell(Text('$firstname $lastname')),
+                                        DataCell(Text('$email')),
                                         DataCell(Text(buildingnumber)),
                                         DataCell(Text(unitnumber)),
                                         DataCell(Text(contactnumber)),
@@ -841,6 +826,53 @@ class _ArchivePageState extends State<ArchivePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileWidget(String? profileUrl, String firstName, String lastName) {
+    return GestureDetector(
+      onTap: () {
+        if (profileUrl != null && profileUrl.isNotEmpty) {
+          _showImageDialog(profileUrl);
+        }
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.grey[300],
+        ),
+        child: profileUrl != null && profileUrl.isNotEmpty
+            ? ClipOval(
+                child: Image.network(
+                  profileUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Text(
+                        _getInitials(firstName, lastName),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
+            : Center(
+                child: Text(
+                  _getInitials(firstName, lastName),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
       ),
     );
   }

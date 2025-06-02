@@ -92,7 +92,26 @@ class TransactionDetailsPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text("Remaining Balance: ₱ $balance"),
                 const SizedBox(height: 10),
-                Text("Payment Mode: $paymentMode"),
+                const Text("Payment Mode:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: paymentMode != 'N/A' ? paymentMode : null,
+                  items: ['GCash', 'Cash'].map((mode) {
+                    return DropdownMenuItem(value: mode, child: Text(mode));
+                  }).toList(),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  onChanged: (String? newMode) async {
+                    if (newMode != null) {
+                      await FirebaseFirestore.instance.collection('sales_record').doc(id).update({'payment_mode': newMode});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Payment mode updated to $newMode")),
+                      );
+                    }
+                  },
+                ),
                 const SizedBox(height: 10),
                 Text("Payment Type: $paymentType"),
                 const SizedBox(height: 10),
@@ -124,6 +143,62 @@ class TransactionDetailsPage extends StatelessWidget {
                       )
                     : const Text("No proof of payment uploaded."),
                 const SizedBox(height: 30),
+                const Divider(),
+                const Text("Payment History", style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                FutureBuilder<QuerySnapshot>(
+                  future: FirebaseFirestore.instance.collection('sales_record').doc(id).collection('payments').orderBy('timestamp', descending: true).get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Text("No payments made yet.");
+                    }
+
+                    return Column(
+                      children: snapshot.data!.docs.map((doc) {
+                        final payment = doc.data() as Map<String, dynamic>;
+                        final timestamp = payment['timestamp'] != null ? (payment['timestamp'] as Timestamp).toDate() : null;
+                        final String paymentStatus = (payment['status'] ?? '').toLowerCase();
+                        final String status = (payment['status'] ?? 'unpaid').toLowerCase();
+                        final String type = (payment['payment_type'] ?? '').toLowerCase();
+                        final String label = type == 'partial' ? 'Partial - ${status[0].toUpperCase()}${status.substring(1)}' : '${status[0].toUpperCase()}${status.substring(1)}';
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: ListTile(
+                            title: Text("₱ ${payment['amount'] ?? '0.00'}"),
+                            subtitle: Text(
+                              "${payment['payer_name'] ?? 'Unknown'} • ${timestamp != null ? timestamp.toString().split('.')[0] : 'No date'}",
+                            ),
+                            trailing: Text(
+                              label,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onTap: () async {
+                              final updated = await showModalBottomSheet(
+                                context: context,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                ),
+                                builder: (_) => PaymentStatusEditor(
+                                  salesId: id,
+                                  paymentId: doc.id,
+                                  currentStatus: payment['status'] ?? 'partial',
+                                ),
+                              );
+
+                              if (updated == true) {
+                                // Force rebuild after modal is closed
+                                (context as Element).markNeedsBuild();
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -181,6 +256,7 @@ class TransactionDetailsPage extends StatelessWidget {
   }
 }
 
+// ✅ Full-screen image viewer with zoom
 class FullScreenImageViewer extends StatelessWidget {
   final String imageUrl;
 
@@ -209,6 +285,88 @@ class FullScreenImageViewer extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class PaymentStatusEditor extends StatefulWidget {
+  final String salesId;
+  final String paymentId;
+  final String currentStatus;
+
+  const PaymentStatusEditor({
+    super.key,
+    required this.salesId,
+    required this.paymentId,
+    required this.currentStatus,
+  });
+
+  @override
+  State<PaymentStatusEditor> createState() => _PaymentStatusEditorState();
+}
+
+class _PaymentStatusEditorState extends State<PaymentStatusEditor> {
+  late String currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    currentStatus = widget.currentStatus.toLowerCase();
+  }
+
+  Future<void> updatePaymentStatus(String newStatus) async {
+    await FirebaseFirestore.instance.collection('sales_record').doc(widget.salesId).collection('payments').doc(widget.paymentId).update({'status': newStatus});
+    setState(() {
+      currentStatus = newStatus;
+    });
+
+    // Return true to trigger UI refresh in parent
+    Navigator.pop(context, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPaid = currentStatus == 'paid';
+    final bool isUnpaid = currentStatus == 'unpaid';
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text("Update Payment Status", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isPaid ? null : () => updatePaymentStatus('paid'),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Mark as Paid'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.green.shade200,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isUnpaid ? null : () => updatePaymentStatus('unpaid'),
+                  icon: const Icon(Icons.cancel),
+                  label: const Text('Mark as Unpaid'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.red.shade200,
+                  ),
+                ),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }
