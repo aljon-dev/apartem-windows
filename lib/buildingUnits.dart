@@ -309,11 +309,47 @@ class _buildingUnits extends State<buildingUnits> {
                                       IconButton(
                                         icon: const Icon(Icons.delete, size: 20, color: Colors.red),
                                         onPressed: () async {
-                                          try {
-                                            await _firestore.collection('UnitNumber').doc(unitId).delete();
-                                            _Snackbar('Unit deleted', Colors.green, context);
-                                          } catch (e) {
-                                            _Snackbar('Failed to delete unit', Colors.red, context);
+                                          final confirmDelete = await showDialog<bool>(
+                                            context: context,
+                                            builder: (BuildContext dialogContext) {
+                                              return AlertDialog(
+                                                title: const Text('Confirm Deletion'),
+                                                content: Text('Are you sure you want to delete Unit #$unitNumber?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                                                    child: const Text(
+                                                      'Delete',
+                                                      style: TextStyle(color: Colors.red),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+
+                                          if (confirmDelete == true) {
+                                            try {
+                                              final DocuSnapshot = await _firestore.collection('Tenant').where('unitNumber', isEqualTo: newUnitNumberController.text).get();
+
+                                              if (DocuSnapshot.docs.isNotEmpty) {
+                                                final userData = DocuSnapshot.docs.first;
+
+                                                await _firestore.collection('Archive').doc(userData.id).set(userData.data());
+
+                                                await _firestore.collection('Tenant').doc(userData.id).delete();
+
+                                                await _firestore.collection('UnitNumber').doc(unitId).delete();
+                                              }
+
+                                              _Snackbar('Unit deleted', Colors.green, context);
+                                            } catch (e) {
+                                              _Snackbar('Failed to delete unit', Colors.red, context);
+                                            }
                                           }
                                         },
                                       ),
