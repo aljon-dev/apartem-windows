@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bogsandmila/AdminOnly/BuildingUnitsAdmin.dart';
 import 'package:bogsandmila/adminaccount.dart';
 import 'package:bogsandmila/announce.dart';
 import 'package:bogsandmila/archive.dart';
@@ -358,8 +359,8 @@ class _DashboardPage extends State<DashboardPage> {
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) => buildingUnits(
-                                                  userid: widget.uid,
+                                            builder: (context) => BuildingUnitsAdminDesktop(
+                                                  userId: widget.uid,
                                                 )));
                                   },
                                   child: Container(
@@ -378,7 +379,7 @@ class _DashboardPage extends State<DashboardPage> {
                                           fit: BoxFit.cover,
                                         ),
                                         Text(
-                                          'Update Building',
+                                          'Building Units',
                                           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                                         ),
                                       ],

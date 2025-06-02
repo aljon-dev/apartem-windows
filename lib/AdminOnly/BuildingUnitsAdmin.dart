@@ -1,25 +1,38 @@
 import 'package:bogsandmila/AdminOnly/TenantPage.dart';
+import 'package:bogsandmila/TransactionDetailsPage.dart';
+
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 
-class buildingUnits extends StatefulWidget {
-  const buildingUnits({super.key});
+class BuildingUnitsAdminDesktop extends StatefulWidget {
+  String userId;
+  BuildingUnitsAdminDesktop({super.key, required this.userId});
 
   @override
-  State<buildingUnits> createState() => _buildingUnits();
+  State<BuildingUnitsAdminDesktop> createState() => _BuildingUnitsDesktopState();
 }
 
-class _buildingUnits extends State<buildingUnits> {
+class _BuildingUnitsDesktopState extends State<BuildingUnitsAdminDesktop> {
   final _firestore = FirebaseFirestore.instance;
+  final _scrollController = ScrollController();
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
-  void _Snackbar(String message, Color color, BuildContext context) {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showSnackbar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: color,
-        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
+        width: 400,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -27,312 +40,211 @@ class _buildingUnits extends State<buildingUnits> {
     );
   }
 
-  Future<void> AddBuilding() async {
-    GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    TextEditingController buildingname = TextEditingController();
-    TextEditingController buildingunit = TextEditingController();
-
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Add Building Unit'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Form(
-                    key: formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: buildingname,
-                          decoration: const InputDecoration(labelText: 'Building Number', border: OutlineInputBorder()),
-                          validator: (value) => value == null || value.isEmpty ? 'PLEASE ENTER BUILDING NUMBER' : null,
-                        ),
-                        const SizedBox(height: 10),
-                        TextFormField(
-                          keyboardType: TextInputType.number,
-                          controller: buildingunit,
-                          decoration: const InputDecoration(labelText: 'How many Units in this Building', border: OutlineInputBorder()),
-                          validator: (value) => value == null || value.isEmpty ? 'Please Enter Your Number of Units' : null,
-                        ),
-                      ],
-                    ))
-              ],
-            ),
-            actions: [
-              TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.red),
-                  icon: const Icon(Icons.cancel),
-                  label: const Text('Cancel')),
-              TextButton.icon(
-                  onPressed: () async {
-                    if (formKey.currentState!.validate()) {
-                      final Building = await _firestore.collection('building').where('building', isEqualTo: int.parse(buildingname.text)).get();
-                      if (Building.docs.isEmpty) {
-                        final building = await _firestore.collection('building').add({
-                          'building': int.parse(buildingname.text),
-                          'available': int.parse(buildingunit.text),
-                        });
-                        String buildingId = building.id;
-                        await getBuildingUnits(int.parse(buildingunit.text), buildingId, int.parse(buildingname.text));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Building Already Exists', style: TextStyle(color: Colors.white)),
-                            duration: Duration(seconds: 2),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.blue),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Building Unit'))
-            ],
-          );
-        });
-  }
-
-  Future<void> EditShowData(String BuildingId, String BuildingNumber) async {
-    final List<String> UnitType = [
-      'Studio Type',
-      'Bedroom Type',
-      'Bungalow Type',
-    ];
-
-    final newUnitNumberController = TextEditingController();
-    final newUnitTypeController = TextEditingController();
+  Future<void> _addBuilding() async {
+    final formKey = GlobalKey<FormState>();
+    final buildingNameController = TextEditingController();
+    final buildingUnitController = TextEditingController();
 
     return showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Edit Building $BuildingNumber',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Add New Unit Section
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Add New Unit',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: newUnitNumberController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Unit Number',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          hint: const Text('Select Unit Type'),
-                          items: UnitType.map((String item) {
-                            return DropdownMenuItem<String>(
-                              value: item,
-                              child: Text(item),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            newUnitTypeController.text = newValue!;
-                          },
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text('Add Unit'),
-                            style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                            onPressed: () async {
-                              if (newUnitNumberController.text.isEmpty || newUnitTypeController.text.isEmpty) {
-                                _Snackbar('Please fill all fields', Colors.red, context);
-                                return;
-                              }
-
-                              final existingUnits = await _firestore.collection('UnitNumber').where('buildingId', isEqualTo: BuildingId).where('unitNumber', isEqualTo: int.parse(newUnitNumberController.text)).get();
-
-                              if (existingUnits.docs.isNotEmpty) {
-                                _Snackbar('Unit number already exists', Colors.red, context);
-                                return;
-                              }
-
-                              try {
-                                await _firestore.collection('UnitNumber').add({
-                                  'buildingId': BuildingId,
-                                  'unitNumber': int.parse(newUnitNumberController.text),
-                                  'unitType': newUnitTypeController.text,
-                                  'isOccupied': false,
-                                });
-                                _Snackbar('Unit added successfully', Colors.green, context);
-                                newUnitNumberController.clear();
-                                newUnitTypeController.text = '';
-                              } catch (e) {
-                                _Snackbar('Failed to add unit', Colors.red, context);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add New Building'),
+          content: SizedBox(
+            width: 500,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: buildingNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Building Number',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
+                    validator: (value) => value == null || value.isEmpty ? 'Please enter building number' : null,
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: buildingUnitController,
+                    decoration: const InputDecoration(
+                      labelText: 'Number of Units',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    ),
+                    validator: (value) => value == null || value.isEmpty ? 'Please enter number of units' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  try {
+                    final buildingNumber = int.parse(buildingNameController.text);
+                    final existingBuilding = await _firestore.collection('building').where('building', isEqualTo: buildingNumber).get();
 
-                // Existing Units Section
+                    if (existingBuilding.docs.isNotEmpty) {
+                      _showSnackbar('Building already exists', Colors.red);
+                      return;
+                    }
+
+                    final buildingRef = await _firestore.collection('building').add({
+                      'building': buildingNumber,
+                      'available': int.parse(buildingUnitController.text),
+                    });
+
+                    await _showUnitCreationDialog(
+                      int.parse(buildingUnitController.text),
+                      buildingRef.id,
+                      buildingNumber,
+                    );
+
+                    _showSnackbar('Building added successfully', Colors.green);
+                    Navigator.pop(context);
+                  } catch (e) {
+                    _showSnackbar('Error: ${e.toString()}', Colors.red);
+                  }
+                }
+              },
+              child: const Text('Add Building'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showUnitCreationDialog(int unitCount, String buildingId, int buildingNumber) async {
+    final unitControllers = List.generate(unitCount, (index) => TextEditingController());
+    final unitTypeControllers = List.generate(unitCount, (index) => TextEditingController());
+    final unitTypes = ['Studio Type', 'Bedroom Type', 'Bungalow Type'];
+
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(40),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 const Text(
-                  'Existing Units',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  'Add Unit Details',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _firestore.collection('UnitNumber').where('buildingId', isEqualTo: BuildingId).orderBy('unitNumber', descending: false).snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      }
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text('No units found'));
-                      }
-
-                      final units = snapshot.data!.docs;
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: units.length,
-                        itemBuilder: (context, index) {
-                          final unit = units[index];
-                          final unitNumber = unit['unitNumber'].toString();
-                          final unitType = unit['unitType'].toString();
-                          final unitId = unit.id;
-
-                          final unitNumberController = TextEditingController(text: unitNumber);
-                          final unitTypeController = TextEditingController(text: unitType);
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Unit #$unitNumber',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: unitNumberController,
-                                    keyboardType: TextInputType.number,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Unit Number',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Scrollbar(
+                    controller: _scrollController,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: Column(
+                        children: List.generate(unitCount, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Unit ${index + 1}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  DropdownButtonFormField<String>(
-                                    value: unitTypeController.text,
-                                    items: UnitType.map((String item) {
-                                      return DropdownMenuItem<String>(
-                                        value: item,
-                                        child: Text(item),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      unitTypeController.text = newValue!;
-                                    },
-                                    decoration: const InputDecoration(
-                                      labelText: 'Unit Type',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    const SizedBox(height: 12),
+                                    TextFormField(
+                                      controller: unitControllers[index],
+                                      decoration: const InputDecoration(
+                                        labelText: 'Unit Number',
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.save, size: 20),
-                                        onPressed: () async {
-                                          try {
-                                            await _firestore.collection('UnitNumber').doc(unitId).update({
-                                              'unitNumber': int.parse(unitNumberController.text),
-                                              'unitType': unitTypeController.text,
-                                            });
-                                            _Snackbar('Unit updated', Colors.green, context);
-                                          } catch (e) {
-                                            _Snackbar('Failed to update unit', Colors.red, context);
-                                          }
-                                        },
+                                    const SizedBox(height: 12),
+                                    DropdownButtonFormField<String>(
+                                      hint: const Text('Select Unit Type'),
+                                      items: unitTypes.map((type) {
+                                        return DropdownMenuItem(
+                                          value: type,
+                                          child: Text(type),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        unitTypeControllers[index].text = value!;
+                                      },
+                                      decoration: const InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                                        onPressed: () async {
-                                          try {
-                                            await _firestore.collection('UnitNumber').doc(unitId).delete();
-                                            _Snackbar('Unit deleted', Colors.green, context);
-                                          } catch (e) {
-                                            _Snackbar('Failed to delete unit', Colors.red, context);
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
-                        },
-                      );
-                    },
+                        }),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      onPressed: () async {
+                        try {
+                          for (int i = 0; i < unitCount; i++) {
+                            if (unitControllers[i].text.isEmpty || unitTypeControllers[i].text.isEmpty) {
+                              _showSnackbar('Please fill all fields', Colors.red);
+                              return;
+                            }
+
+                            await _firestore.collection('UnitNumber').add({
+                              'buildingId': buildingId,
+                              'unitNumber': int.parse(unitControllers[i].text),
+                              'unitType': unitTypeControllers[i].text,
+                              'isOccupied': false,
+                              'building#': buildingNumber,
+                            });
+                          }
+                          _showSnackbar('Units added successfully', Colors.green);
+                          Navigator.pop(context);
+                        } catch (e) {
+                          _showSnackbar('Error adding units: $e', Colors.red);
+                        }
+                      },
+                      child: const Text('Save All Units'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -342,306 +254,171 @@ class _buildingUnits extends State<buildingUnits> {
     );
   }
 
-  Future<void> getBuildingUnits(int _BuildingUnits, String key, int BuildingNumber) async {
-    final List<String> UnitType = [
-      'Studio Type',
-      'Bedroom Type',
-      'Bungalow Type',
-    ];
+  Widget _buildBuildingCard(DocumentSnapshot building) {
+    final buildingNumber = building['building'];
+    final availableUnits = building['available'];
 
-    List<TextEditingController> buildingUnitNumber = List.generate(_BuildingUnits, (index) => TextEditingController());
-    List<String?> dropdownValues = List.generate(_BuildingUnits, (index) => null);
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).snapshots(),
+      builder: (context, unitSnapshot) {
+        if (!unitSnapshot.hasData) return const SizedBox();
 
-    return showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Building Units'),
-            content: SingleChildScrollView(
+        final totalUnits = unitSnapshot.data!.docs.length;
+        final occupiedUnits = unitSnapshot.data!.docs.where((unit) => unit['isOccupied'] == true).length;
+        final available = totalUnits - occupiedUnits;
+        final fullyOccupied = available == 0;
+
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              // Navigate to building detail view
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(_BuildingUnits, (index) {
-                  return Column(children: [
-                    TextFormField(
-                      controller: buildingUnitNumber[index],
-                      decoration: InputDecoration(
-                        labelText: 'Building Unit Number ${index + 1}',
-                        border: const OutlineInputBorder(),
-                      ),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.apartment,
+                    size: 40,
+                    color: fullyOccupied ? Colors.red : Colors.green,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Building $buildingNumber',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<String>(
-                      value: dropdownValues[index],
-                      items: UnitType.map((String item) {
-                        return DropdownMenuItem<String>(
-                          value: item,
-                          child: Text(item),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          dropdownValues[index] = newValue;
-                        });
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$occupiedUnits/$totalUnits occupied',
+                    style: TextStyle(
+                      color: fullyOccupied ? Colors.red : Colors.green,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => TenantPage(
+                                      buildingnumber: buildingNumber.toString(),
+                                    )));
                       },
-                      decoration: const InputDecoration(
-                        labelText: 'Select Unit Type',
-                        border: OutlineInputBorder(),
-                      ),
+                      child: const Text('View Tenants'),
                     ),
-                    const SizedBox(height: 10),
-                    const Divider(
-                      color: Colors.black,
-                      height: 20,
-                      thickness: 2,
-                      indent: 10,
-                      endIndent: 10,
-                    )
-                  ]);
-                }),
+                  ),
+                ],
               ),
             ),
-            actions: [
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                label: Text('Cancel'),
-                icon: Icon(Icons.cancel),
-                style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.red),
-              ),
-              TextButton.icon(
-                  onPressed: () async {
-                    // First, validate all fields
-                    bool hasEmptyFields = false;
-                    for (int i = 0; i < _BuildingUnits; i++) {
-                      if (buildingUnitNumber[i].text.isEmpty || dropdownValues[i] == null || dropdownValues[i] == '') {
-                        hasEmptyFields = true;
-                        break;
-                      }
-                    }
-
-                    if (hasEmptyFields) {
-                      _Snackbar('Please Fill All Fields', Colors.red, context);
-                      return; // Exit without closing dialog
-                    }
-
-                    // If validation passes, save all units
-                    try {
-                      for (int i = 0; i < _BuildingUnits; i++) {
-                        await _firestore.collection('UnitNumber').add({
-                          'buildingId': key,
-                          'unitNumber': int.parse(buildingUnitNumber[i].text),
-                          'unitType': dropdownValues[i],
-                          'isOccupied': false,
-                          'building#': BuildingNumber,
-                        });
-                      }
-
-                      // Show success message only once after all units are saved
-                      _Snackbar('All Units Added Successfully', Colors.green, context);
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    } catch (e) {
-                      // Handle any errors during saving
-                      _Snackbar('Error saving units: $e', Colors.red, context);
-                    }
-                  },
-                  icon: const Icon(Icons.save),
-                  style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)), foregroundColor: Colors.white, backgroundColor: Colors.blue),
-                  label: const Text('Save Units'))
-            ],
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: Row(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: IconButton(
+          icon: Row(
             children: [
-              TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: TextButton.styleFrom(foregroundColor: Colors.black),
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.black,
-                  ),
-                  label: const Text('Back'))
+              Icon(Icons.arrow_back),
+              Text('Back'),
             ],
           ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Building Units',
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Building Management',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.circle, size: 12, color: Colors.green),
-                      SizedBox(width: 4),
-                      Text('Has Vacancy', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                  SizedBox(width: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.circle, size: 12, color: Colors.red),
-                      SizedBox(width: 4),
-                      Text('Fully Occupied', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
+            const SizedBox(height: 24),
+            const Row(
+              children: [
+                Icon(Icons.circle, size: 12, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Vacant units available'),
+                SizedBox(width: 24),
+                Icon(Icons.circle, size: 12, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Fully occupied'),
+              ],
             ),
-            StreamBuilder<QuerySnapshot>(
+            const SizedBox(height: 24),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('building').orderBy('building').snapshots(),
-                builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error'));
+                    return Center(child: Text('Error: ${snapshot.error}'));
                   }
+
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final buildingSnapshot = snapshot.data!.docs;
-                  return Expanded(
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: _firestore.collection('building').orderBy('building').snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasError) return const Center(child: Text('Error'));
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  final buildings = snapshot.data!.docs.where((building) {
+                    if (_searchQuery.isEmpty) return true;
+                    return building['building'].toString().contains(_searchQuery);
+                  }).toList();
 
-                        final buildings = snapshot.data!.docs;
-                        return GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.75),
-                          itemCount: buildings.length,
-                          itemBuilder: (context, index) {
-                            final building = buildings[index];
-                            final buildingNumber = building['building'];
+                  if (buildings.isEmpty) {
+                    return const Center(child: Text('No buildings found'));
+                  }
 
-                            return StreamBuilder<QuerySnapshot>(
-                              stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).snapshots(),
-                              builder: (context, unitSnapshot) {
-                                if (!unitSnapshot.hasData) return const SizedBox();
-                                final totalUnits = unitSnapshot.data!.docs.length;
-
-                                return StreamBuilder<QuerySnapshot>(
-                                  stream: _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).snapshots(),
-                                  builder: (context, availableSnapshot) {
-                                    if (!availableSnapshot.hasData) return const SizedBox();
-                                    final available = availableSnapshot.data!.docs.length;
-                                    final occupied = totalUnits - available;
-                                    final fullyOccupied = available == 0;
-
-                                    return Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 3,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Icon(Icons.apartment, size: 30, color: fullyOccupied ? Colors.red : Colors.green),
-                                            const SizedBox(height: 8),
-                                            Text('Building No. $buildingNumber', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                            Text(
-                                              '$occupied/$totalUnits',
-                                              style: TextStyle(
-                                                color: fullyOccupied ? Colors.red : Colors.green,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-
-                                            /// 🟦 View Button (on top)
-                                            SizedBox(
-                                              width: double.infinity,
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) => TenantPage(
-                                                        buildingnumber: buildingNumber.toString(),
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.blue,
-                                                  foregroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                ),
-                                                child: const Text('View'),
-                                              ),
-                                            ),
-
-                                            const SizedBox(height: 8),
-
-                                            /// ⚫ Update Button (bottom)
-                                            // SizedBox(
-                                            //   width: double.infinity,
-                                            //   child: ElevatedButton.icon(
-                                            //     onPressed: () {
-                                            //       EditShowData(
-                                            //           building.id,
-                                            //           buildingNumber
-                                            //               .toString());
-                                            //     },
-                                            //     icon: const Icon(Icons.refresh,
-                                            //         size: 16),
-                                            //     label: const Text('Update'),
-                                            //     style: ElevatedButton.styleFrom(
-                                            //       backgroundColor:
-                                            //           Colors.black87,
-                                            //       foregroundColor: Colors.white,
-                                            //       shape: RoundedRectangleBorder(
-                                            //         borderRadius:
-                                            //             BorderRadius.circular(
-                                            //                 6),
-                                            //       ),
-                                            //     ),
-                                            //   ),
-                                            // ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 300,
+                      crossAxisSpacing: 20,
+                      mainAxisSpacing: 20,
+                      childAspectRatio: 0.8,
                     ),
+                    itemCount: buildings.length,
+                    itemBuilder: (context, index) {
+                      return _buildBuildingCard(buildings[index]);
+                    },
                   );
-                })
+                },
+              ),
+            ),
           ],
-        ));
+        ),
+      ),
+    );
   }
 }

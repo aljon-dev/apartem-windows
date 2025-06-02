@@ -735,32 +735,45 @@ class _TenantPageState extends State<TenantPage> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: tenants.length,
-                  itemBuilder: (context, index) {
-                    final tenant = tenants[index];
-                    final name = '${tenant['firstname']} ${tenant['lastname']}';
-                    final unit = tenant['unitnumber'] ?? 'N/A';
-                    final contact = tenant['contactnumber'] ?? 'N/A';
-                    final rent = NumberFormat.currency(symbol: '₱').format(tenant['rentalfee'] ?? 0);
-                    final tenantData = tenant.data() as Map<String, dynamic>;
-                    final hasProfileImage = tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Determine the best card width based on available space
+                    final cardWidth = constraints.maxWidth > 1000
+                        ? constraints.maxWidth * 0.45
+                        : constraints.maxWidth > 600
+                            ? constraints.maxWidth * 0.7
+                            : constraints.maxWidth;
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: cardWidth,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 2.5,
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      itemCount: tenants.length,
+                      itemBuilder: (context, index) {
+                        final tenant = tenants[index];
+                        final name = '${tenant['firstname']} ${tenant['lastname']}';
+                        final unit = tenant['unitnumber'] ?? 'N/A';
+                        final contact = tenant['contactnumber'] ?? 'N/A';
+                        final rent = NumberFormat.currency(symbol: '₱').format(tenant['rentalfee'] ?? 0);
+                        final tenantData = tenant.data() as Map<String, dynamic>;
+                        final hasProfileImage = tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty;
+
+                        return Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                // Profile section
+                                Column(
                                   children: [
                                     GestureDetector(
                                       onTap: hasProfileImage
@@ -783,7 +796,7 @@ class _TenantPageState extends State<TenantPage> {
                                             }
                                           : null,
                                       child: CircleAvatar(
-                                        radius: 24,
+                                        radius: 32,
                                         backgroundColor: Colors.blueGrey[200],
                                         backgroundImage: hasProfileImage ? NetworkImage(tenantData['profile']) : null,
                                         child: hasProfileImage
@@ -791,192 +804,179 @@ class _TenantPageState extends State<TenantPage> {
                                             : Text(
                                                 (tenantData['firstname']?.toString().isNotEmpty ?? false) ? tenantData['firstname'].toString()[0].toUpperCase() : '?',
                                                 style: const TextStyle(
-                                                  fontSize: 20,
+                                                  fontSize: 24,
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(height: 8),
                                     Text(
                                       name,
                                       style: const TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.message, color: Colors.blue),
-                                  tooltip: 'Send Message',
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ChatScreen(
-                                          adminId: 'userAdmin', // or pass your current admin UID dynamically
-                                          tenantId: tenant.id,
-                                          tenantName: '${tenant['firstname']} ${tenant['lastname']}',
-                                          buildingnumber: tenant['buildingnumber'] ?? '',
-                                          unitnumber: tenant['unitnumber'] ?? '',
-                                        ),
-                                      ),
-                                    );
-                                  },
+
+                                const SizedBox(width: 16),
+
+                                // Information section
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildInfoRow(Icons.home, 'Unit $unit'),
+                                      _buildInfoRow(Icons.phone, contact),
+                                      _buildInfoRow(Icons.attach_money, 'Rent: $rent'),
+                                    ],
+                                  ),
                                 ),
-                                PopupMenuButton<String>(
-                                  onSelected: (value) async {
-                                    if (value == 'Payment') {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => saleRecordingInfoPage(
-                                            uid: tenant.id,
-                                            firstname: tenant['firstname'],
-                                            lastname: tenant['lastname'],
-                                            buildnumber: widget.buildingnumber,
-                                            unitnumber: tenant['unitnumber'],
-                                          ),
-                                        ),
-                                      );
-                                    } else if (value == 'View Sub-Account') {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: const Text('Sub Accounts'),
-                                            content: SizedBox(
-                                              width: double.maxFinite,
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // 👇 Sub-heading below title
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(bottom: 8),
-                                                    child: Text(
-                                                      'Tenant: ${tenant['firstname']} ${tenant['lastname']} | Building #: ${tenant['buildingnumber']} | Unit #: ${tenant['unitnumber']}',
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ),
 
-                                                  // 👇 Sub-account list
-                                                  SizedBox(
-                                                    height: 250,
-                                                    child: StreamBuilder<QuerySnapshot>(
-                                                      stream: _firestore.collection('Sub-Tenant').where('mainAccountId', isEqualTo: tenant.id).snapshots(),
-                                                      builder: (context, snapshot) {
-                                                        if (snapshot.hasError) {
-                                                          return const Text('Error loading sub-accounts');
-                                                        }
-                                                        if (!snapshot.hasData) {
-                                                          return const Center(child: CircularProgressIndicator());
-                                                        }
-                                                        if (snapshot.data!.docs.isEmpty) {
-                                                          return const Center(child: Text('No sub-accounts found'));
-                                                        }
-
-                                                        return ListView.builder(
-                                                          itemCount: snapshot.data!.docs.length,
-                                                          itemBuilder: (context, index) {
-                                                            final subAccount = snapshot.data!.docs[index];
-                                                            return ListTile(
-                                                              leading: GestureDetector(
-                                                                onTap: () {
-                                                                  showDialog(
-                                                                    context: context,
-                                                                    builder: (_) => Dialog(
-                                                                      backgroundColor: Colors.transparent,
-                                                                      child: InteractiveViewer(
-                                                                        child: ClipRRect(
-                                                                          borderRadius: BorderRadius.circular(12),
-                                                                          child: Image.network(
-                                                                            subAccount['profileImage'],
-                                                                            fit: BoxFit.contain,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                child: CircleAvatar(
-                                                                  backgroundImage: NetworkImage(subAccount['profileImage']),
-                                                                ),
-                                                              ),
-                                                              title: Text(subAccount['fullname'] ?? 'No name'),
-                                                              subtitle: Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  Text('Username: ${subAccount['username']}'),
-                                                                  Text('Contact: ${subAccount['contact']}'),
-                                                                  Text('Email: ${subAccount['email']}'),
-                                                                  Text('Remarks: ${subAccount['remarks']}'),
-                                                                  Text('Building #: ${subAccount['buildingnumber']}'),
-                                                                  Text('Unit #: ${subAccount['unitnumber']}'),
-                                                                ],
-                                                              ),
-                                                            );
-                                                          },
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-                                                ],
+                                // Action buttons
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.message, size: 28, color: Colors.blue),
+                                      tooltip: 'Send Message',
+                                      onPressed: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (context) => messagePage(firstname: tenantData['firstname'], userid: '')));
+                                      },
+                                    ),
+                                    PopupMenuButton<String>(
+                                      onSelected: (value) async {
+                                        if (value == 'Payment') {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => saleRecordingInfoPage(
+                                                uid: tenant.id,
+                                                firstname: tenant['firstname'],
+                                                lastname: tenant['lastname'],
+                                                buildnumber: widget.buildingnumber,
+                                                unitnumber: tenant['unitnumber'],
                                               ),
                                             ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(context).pop(),
-                                                child: const Text('Close'),
-                                              ),
-                                            ],
                                           );
-                                        },
-                                      );
-                                    } else if (value == 'Reset Password') {
-                                      await _firestore.collection('tenant').doc(tenant.id).update({
-                                        'password': '123456789',
-                                      });
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Password reset successfully'),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      }
-                                    } else if (value == 'Edit') {
-                                      await _showEditTenantDialog(tenant);
-                                    } else if (value == 'Delete') {
-                                      await _deleteTenant(tenant);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'Payment',
-                                      child: Text('Payment'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'View Sub-Account',
-                                      child: Text('View Sub-Account'),
+                                        } else if (value == 'View Sub-Account') {
+                                          showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return AlertDialog(
+                                                title: const Text('Sub Accounts'),
+                                                content: SizedBox(
+                                                  width: double.maxFinite,
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(bottom: 8),
+                                                        child: Text(
+                                                          'Tenant: ${tenant['firstname']} ${tenant['lastname']} | Building #: ${tenant['buildingnumber']} | Unit #: ${tenant['unitnumber']}',
+                                                          style: const TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                        height: 250,
+                                                        child: StreamBuilder<QuerySnapshot>(
+                                                          stream: _firestore.collection('Sub-Tenant').where('mainAccountId', isEqualTo: tenant.id).snapshots(),
+                                                          builder: (context, snapshot) {
+                                                            if (snapshot.hasError) {
+                                                              return const Text('Error loading sub-accounts');
+                                                            }
+                                                            if (!snapshot.hasData) {
+                                                              return const Center(child: CircularProgressIndicator());
+                                                            }
+                                                            if (snapshot.data!.docs.isEmpty) {
+                                                              return const Center(child: Text('No sub-accounts found'));
+                                                            }
+
+                                                            return ListView.builder(
+                                                              itemCount: snapshot.data!.docs.length,
+                                                              itemBuilder: (context, index) {
+                                                                final subAccount = snapshot.data!.docs[index];
+                                                                return ListTile(
+                                                                  leading: GestureDetector(
+                                                                    onTap: () {
+                                                                      showDialog(
+                                                                        context: context,
+                                                                        builder: (_) => Dialog(
+                                                                          backgroundColor: Colors.transparent,
+                                                                          child: InteractiveViewer(
+                                                                            child: ClipRRect(
+                                                                              borderRadius: BorderRadius.circular(12),
+                                                                              child: Image.network(
+                                                                                subAccount['profileImage'],
+                                                                                fit: BoxFit.contain,
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                    child: CircleAvatar(
+                                                                      backgroundImage: NetworkImage(subAccount['profileImage']),
+                                                                    ),
+                                                                  ),
+                                                                  title: Text(subAccount['fullname'] ?? 'No name'),
+                                                                  subtitle: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    children: [
+                                                                      Text('Username: ${subAccount['username']}'),
+                                                                      Text('Contact: ${subAccount['contact']}'),
+                                                                      Text('Email: ${subAccount['email']}'),
+                                                                      Text('Remarks: ${subAccount['remarks']}'),
+                                                                      Text('Building #: ${subAccount['buildingnumber']}'),
+                                                                      Text('Unit #: ${subAccount['unitnumber']}'),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                              },
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(),
+                                                    child: const Text('Close'),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'Payment',
+                                          child: Text('Payment'),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'View Sub-Account',
+                                          child: Text('View Sub-Account'),
+                                        ),
+                                      ],
+                                      child: const Icon(Icons.more_vert),
                                     ),
                                   ],
-                                  child: const Icon(Icons.more_vert),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            _buildInfoRow(Icons.home, 'Unit $unit'),
-                            _buildInfoRow(Icons.phone, contact),
-                            _buildInfoRow(Icons.attach_money, 'Rent: $rent'),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
