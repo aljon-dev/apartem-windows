@@ -15,7 +15,8 @@ class TenantPage extends StatefulWidget {
   // ignore: prefer_typing_uninitialized_variables
   final userid;
   final buildingnumber;
-  const TenantPage({super.key, required this.buildingnumber, required this.userid});
+  const TenantPage(
+      {super.key, required this.buildingnumber, required this.userid});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -55,7 +56,11 @@ class _TenantPageState extends State<TenantPage> {
     bool isShowPassword = false;
 
     // Get available units first
-    final unitsSnapshot = await _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).get();
+    final unitsSnapshot = await _firestore
+        .collection('UnitNumber')
+        .where('building#', isEqualTo: buildingNumber)
+        .where('isOccupied', isEqualTo: false)
+        .get();
 
     if (unitsSnapshot.docs.isEmpty) {
       if (mounted) {
@@ -86,7 +91,10 @@ class _TenantPageState extends State<TenantPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       StreamBuilder<QuerySnapshot>(
-                        stream: _firestore.collection('building').orderBy('building').snapshots(),
+                        stream: _firestore
+                            .collection('building')
+                            .orderBy('building')
+                            .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
                             return const Text('Error loading buildings');
@@ -96,8 +104,11 @@ class _TenantPageState extends State<TenantPage> {
                           }
 
                           final buildings = snapshot.data!.docs;
-                          final sortedUnits = [...availableUnits] // copy the list
-                            ..sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+                          final sortedUnits = [
+                            ...availableUnits
+                          ] // copy the list
+                            ..sort(
+                                (a, b) => int.parse(a).compareTo(int.parse(b)));
                           return Column(
                             children: [
                               DropdownButtonFormField<String>(
@@ -124,14 +135,24 @@ class _TenantPageState extends State<TenantPage> {
                                   });
 
                                   if (value != null) {
-                                    final unitSnap = await _firestore.collection('UnitNumber').where('building#', isEqualTo: int.parse(value)).where('isOccupied', isEqualTo: false).get();
+                                    final unitSnap = await _firestore
+                                        .collection('UnitNumber')
+                                        .where('building#',
+                                            isEqualTo: int.parse(value))
+                                        .where('isOccupied', isEqualTo: false)
+                                        .get();
 
                                     dialogSetState(() {
-                                      availableUnits = unitSnap.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                                      availableUnits = unitSnap.docs
+                                          .map((doc) =>
+                                              doc['unitNumber'].toString())
+                                          .toList();
                                     });
                                   }
                                 },
-                                validator: (value) => value == null ? 'Please select a building' : null,
+                                validator: (value) => value == null
+                                    ? 'Please select a building'
+                                    : null,
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
@@ -151,7 +172,9 @@ class _TenantPageState extends State<TenantPage> {
                                     selectedUnitNumber = value;
                                   });
                                 },
-                                validator: (value) => value == null ? 'Please select a unit number' : null,
+                                validator: (value) => value == null
+                                    ? 'Please select a unit number'
+                                    : null,
                               ),
                             ],
                           );
@@ -221,7 +244,9 @@ class _TenantPageState extends State<TenantPage> {
                               });
                             },
                             icon: Icon(
-                              isShowPassword ? Icons.visibility : Icons.visibility_off,
+                              isShowPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
                           ),
                         ),
@@ -247,7 +272,8 @@ class _TenantPageState extends State<TenantPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter email address';
                           }
-                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          final emailRegex =
+                              RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                           if (!emailRegex.hasMatch(value)) {
                             return 'Enter a valid email';
                           }
@@ -299,7 +325,10 @@ class _TenantPageState extends State<TenantPage> {
                       final username = usernameController.text.trim();
                       final contact = contactController.text.trim();
 
-                      final existingUser = await _firestore.collection('tenant').where('username', isEqualTo: username).get();
+                      final existingUser = await _firestore
+                          .collection('tenant')
+                          .where('username', isEqualTo: username)
+                          .get();
                       if (existingUser.docs.isNotEmpty) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -318,7 +347,8 @@ class _TenantPageState extends State<TenantPage> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Invalid contact number (must be 11 digits)'),
+                              content: Text(
+                                  'Invalid contact number (must be 11 digits)'),
                               backgroundColor: Colors.orange,
                             ),
                           );
@@ -327,7 +357,8 @@ class _TenantPageState extends State<TenantPage> {
                       }
 
                       try {
-                        final tenantDoc = await _firestore.collection('tenant').add({
+                        final tenantDoc =
+                            await _firestore.collection('tenant').add({
                           'firstname': firstNameController.text,
                           'lastname': lastNameController.text,
                           'middlename': middleNameController.text,
@@ -338,20 +369,52 @@ class _TenantPageState extends State<TenantPage> {
                           'buildingnumber': selectedBuilding,
                           'rentalfee': int.parse(rentalFeeController.text),
                           'email': emailController.text,
+                          'profile': '',
                         });
 
-                        final unitQuery = await _firestore.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber!)).where('building#', isEqualTo: int.tryParse(selectedBuilding!)).get();
+                        final unitQuery = await _firestore
+                            .collection('UnitNumber')
+                            .where('unitNumber',
+                                isEqualTo: int.tryParse(selectedUnitNumber!))
+                            .where('building#',
+                                isEqualTo: int.tryParse(selectedBuilding!))
+                            .get();
                         if (unitQuery.docs.isNotEmpty) {
-                          await unitQuery.docs.first.reference.update({'isOccupied': true});
+                          await unitQuery.docs.first.reference
+                              .update({'isOccupied': true});
                         }
 
                         final now = DateTime.now();
                         final currentMonth = DateFormat('MMMM').format(now);
                         final currentYear = now.year.toString();
-                        final formattedDateTime = DateFormat('yyyy-MM-dd – HH:mm').format(now);
+                        final formattedDateTime =
+                            DateFormat('yyyy-MM-dd – HH:mm').format(now);
                         final dueDate = now.add(const Duration(days: 30));
-                        final formattedDueDate = DateFormat('dd/MM/yyyy').format(dueDate);
+                        final formattedDueDate =
+                            DateFormat('dd/MM/yyyy').format(dueDate);
+                        final existingRecord = await _firestore
+                            .collection('sales_record')
+                            .where('uid', isEqualTo: tenantDoc.id)
+                            .where('month', isEqualTo: currentMonth)
+                            .where('year', isEqualTo: currentYear)
+                            .get();
 
+                        if (existingRecord.docs.isEmpty) {
+                          await _firestore.collection('sales_record').add({
+                            'datetime': formattedDateTime,
+                            'due_date': formattedDueDate,
+                            'due_day': dueDate.day,
+                            'due_month_number': dueDate.month,
+                            'due_year': dueDate.year,
+                            'month': currentMonth,
+                            'payer_name':
+                                '${firstNameController.text} ${lastNameController.text}',
+                            'rental_cost': int.parse(rentalFeeController.text),
+                            'status': 'Unpaid',
+                            'uid': tenantDoc.id,
+                            'year': currentYear,
+                          });
+                        }
                         await _firestore.collection('sales_record').add({
                           'datetime': formattedDateTime,
                           'due_date': formattedDueDate,
@@ -359,7 +422,8 @@ class _TenantPageState extends State<TenantPage> {
                           'due_month_number': dueDate.month,
                           'due_year': dueDate.year,
                           'month': currentMonth,
-                          'payer_name': '${firstNameController.text} ${lastNameController.text}',
+                          'payer_name':
+                              '${firstNameController.text} ${lastNameController.text}',
                           'rental_cost': int.parse(rentalFeeController.text),
                           'status': 'Unpaid',
                           'uid': tenantDoc.id,
@@ -397,23 +461,33 @@ class _TenantPageState extends State<TenantPage> {
     );
   }
 
-  Future<void> ResetPassword(BuildContext context, QueryDocumentSnapshot doc) async {
+  Future<void> ResetPassword(
+      BuildContext context, QueryDocumentSnapshot doc) async {
     // First show confirmation dialog
     bool confirmReset = await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Password Reset'),
-          content: const Text('Are you sure you want to reset this tenant\'s password? A new password will be emailed to them.'),
+          content: const Text(
+              'Are you sure you want to reset this tenant\'s password? A new password will be emailed to them.'),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10))),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10))),
               child: const Text('Reset Password'),
             ),
           ],
@@ -461,7 +535,10 @@ class _TenantPageState extends State<TenantPage> {
       );
 
       // Update password in Firestore
-      await _firestore.collection('Tenant').doc(doc.id).update({'password': generatedPassword});
+      await _firestore
+          .collection('tenant')
+          .doc(doc.id)
+          .update({'password': generatedPassword});
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -485,12 +562,18 @@ class _TenantPageState extends State<TenantPage> {
     final tenantData = doc.data() as Map<String, dynamic>;
 
     // Form controllers initialized with current values
-    final firstNameController = TextEditingController(text: tenantData['firstname']);
-    final lastNameController = TextEditingController(text: tenantData['lastname']);
-    final middleNameController = TextEditingController(text: tenantData['middlename'] ?? '');
-    final usernameController = TextEditingController(text: tenantData['username']);
-    final contactController = TextEditingController(text: tenantData['contactnumber']);
-    final rentalFeeController = TextEditingController(text: tenantData['rentalfee']?.toString() ?? '0');
+    final firstNameController =
+        TextEditingController(text: tenantData['firstname']);
+    final lastNameController =
+        TextEditingController(text: tenantData['lastname']);
+    final middleNameController =
+        TextEditingController(text: tenantData['middlename'] ?? '');
+    final usernameController =
+        TextEditingController(text: tenantData['username']);
+    final contactController =
+        TextEditingController(text: tenantData['contactnumber']);
+    final rentalFeeController =
+        TextEditingController(text: tenantData['rentalfee']?.toString() ?? '0');
 
     final formKey = GlobalKey<FormState>();
 
@@ -673,7 +756,14 @@ class _TenantPageState extends State<TenantPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> dropdownItems = ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete', 'Message'];
+    List<String> dropdownItems = [
+      'Payment',
+      'View Sub-Account',
+      'Reset Password',
+      'Edit',
+      'Delete',
+      'Message'
+    ];
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -729,7 +819,10 @@ class _TenantPageState extends State<TenantPage> {
                             SizedBox(width: 20),
                             Text(
                               'Building # $selectedBuildingNumber',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 23),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 23),
                             ),
                           ],
                         ),
@@ -753,7 +846,8 @@ class _TenantPageState extends State<TenantPage> {
                                       Expanded(
                                         flex: 3,
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               'Select Building Number',
@@ -765,19 +859,28 @@ class _TenantPageState extends State<TenantPage> {
                                             ),
                                             const SizedBox(height: 8),
                                             StreamBuilder<QuerySnapshot>(
-                                              stream: FirebaseFirestore.instance.collection('building').snapshots(),
-                                              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                              stream: FirebaseFirestore.instance
+                                                  .collection('building')
+                                                  .snapshots(),
+                                              builder: (BuildContext context,
+                                                  AsyncSnapshot<QuerySnapshot>
+                                                      snapshot) {
                                                 if (snapshot.hasError) {
                                                   return Container(
                                                     height: 56,
                                                     decoration: BoxDecoration(
-                                                      border: Border.all(color: Colors.red[300]!),
-                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                          color:
+                                                              Colors.red[300]!),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
                                                     ),
                                                     child: const Center(
                                                       child: Text(
                                                         'Error loading units',
-                                                        style: TextStyle(color: Colors.red),
+                                                        style: TextStyle(
+                                                            color: Colors.red),
                                                       ),
                                                     ),
                                                   );
@@ -787,53 +890,85 @@ class _TenantPageState extends State<TenantPage> {
                                                   return Container(
                                                     height: 56,
                                                     decoration: BoxDecoration(
-                                                      border: Border.all(color: Colors.grey[300]!),
-                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                          color: Colors
+                                                              .grey[300]!),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
                                                     ),
                                                     child: const Center(
                                                       child: SizedBox(
                                                         width: 20,
                                                         height: 20,
-                                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                                strokeWidth: 2),
                                                       ),
                                                     ),
                                                   );
                                                 }
 
-                                                final data = snapshot.data!.docs;
+                                                final data =
+                                                    snapshot.data!.docs;
                                                 Set<String> uniqueUnits = {};
                                                 for (var doc in data) {
-                                                  Map<String, dynamic> docData = doc.data() as Map<String, dynamic>;
-                                                  String BuildingNumber = docData['building']?.toString() ?? '';
-                                                  if (BuildingNumber.isNotEmpty) {
-                                                    uniqueUnits.add(BuildingNumber);
+                                                  Map<String, dynamic> docData =
+                                                      doc.data() as Map<String,
+                                                          dynamic>;
+                                                  String BuildingNumber =
+                                                      docData['building']
+                                                              ?.toString() ??
+                                                          '';
+                                                  if (BuildingNumber
+                                                      .isNotEmpty) {
+                                                    uniqueUnits
+                                                        .add(BuildingNumber);
                                                   }
                                                 }
 
-                                                List<String> sortedUnits = uniqueUnits.toList()
-                                                  ..sort((a, b) {
-                                                    final numA = int.tryParse(a);
-                                                    final numB = int.tryParse(b);
-                                                    if (numA != null && numB != null) {
-                                                      return numA.compareTo(numB);
-                                                    }
-                                                    return a.compareTo(b);
-                                                  });
+                                                List<String> sortedUnits =
+                                                    uniqueUnits.toList()
+                                                      ..sort((a, b) {
+                                                        final numA =
+                                                            int.tryParse(a);
+                                                        final numB =
+                                                            int.tryParse(b);
+                                                        if (numA != null &&
+                                                            numB != null) {
+                                                          return numA
+                                                              .compareTo(numB);
+                                                        }
+                                                        return a.compareTo(b);
+                                                      });
 
                                                 return Container(
                                                   decoration: BoxDecoration(
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    border: Border.all(color: Colors.grey[300]!),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    border: Border.all(
+                                                        color:
+                                                            Colors.grey[300]!),
                                                   ),
-                                                  child: DropdownButtonFormField<String>(
-                                                    value: selectedBuildingNumber,
+                                                  child:
+                                                      DropdownButtonFormField<
+                                                          String>(
+                                                    value:
+                                                        selectedBuildingNumber,
                                                     hint: Row(
                                                       children: [
-                                                        Icon(Icons.home, size: 20, color: Colors.grey[500]),
-                                                        const SizedBox(width: 8),
+                                                        Icon(Icons.home,
+                                                            size: 20,
+                                                            color: Colors
+                                                                .grey[500]),
+                                                        const SizedBox(
+                                                            width: 8),
                                                         Text(
                                                           'Choose Building number',
-                                                          style: TextStyle(color: Colors.grey[600]),
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600]),
                                                         ),
                                                       ],
                                                     ),
@@ -842,45 +977,75 @@ class _TenantPageState extends State<TenantPage> {
                                                         value: null,
                                                         child: Row(
                                                           children: [
-                                                            Icon(Icons.clear_all, size: 20, color: Colors.grey[600]),
-                                                            const SizedBox(width: 8),
+                                                            Icon(
+                                                                Icons.clear_all,
+                                                                size: 20,
+                                                                color: Colors
+                                                                    .grey[600]),
+                                                            const SizedBox(
+                                                                width: 8),
                                                             Text(
                                                               'Buildings',
                                                               style: TextStyle(
-                                                                color: Colors.grey[600],
-                                                                fontWeight: FontWeight.w500,
+                                                                color: Colors
+                                                                    .grey[600],
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
                                                               ),
                                                             ),
                                                           ],
                                                         ),
                                                       ),
-                                                      ...sortedUnits.map((String unitnumber) {
-                                                        return DropdownMenuItem<String>(
+                                                      ...sortedUnits.map(
+                                                          (String unitnumber) {
+                                                        return DropdownMenuItem<
+                                                            String>(
                                                           value: unitnumber,
                                                           child: Row(
                                                             children: [
-                                                              Icon(Icons.apartment, size: 20, color: Colors.blue[600]),
-                                                              const SizedBox(width: 8),
+                                                              Icon(
+                                                                  Icons
+                                                                      .apartment,
+                                                                  size: 20,
+                                                                  color: Colors
+                                                                          .blue[
+                                                                      600]),
+                                                              const SizedBox(
+                                                                  width: 8),
                                                               Text(
                                                                 'Building $unitnumber',
-                                                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                                                style: const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500),
                                                               ),
                                                             ],
                                                           ),
                                                         );
                                                       }).toList(),
                                                     ],
-                                                    onChanged: (String? newValue) {
+                                                    onChanged:
+                                                        (String? newValue) {
                                                       setState(() {
-                                                        selectedBuildingNumber = newValue!;
+                                                        selectedBuildingNumber =
+                                                            newValue!;
                                                       });
                                                     },
-                                                    decoration: const InputDecoration(
+                                                    decoration:
+                                                        const InputDecoration(
                                                       border: InputBorder.none,
-                                                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                      contentPadding:
+                                                          EdgeInsets.symmetric(
+                                                              horizontal: 16,
+                                                              vertical: 12),
                                                     ),
                                                     dropdownColor: Colors.white,
-                                                    icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                                                    icon: Icon(
+                                                        Icons
+                                                            .keyboard_arrow_down,
+                                                        color:
+                                                            Colors.grey[600]),
                                                   ),
                                                 );
                                               },
@@ -891,54 +1056,95 @@ class _TenantPageState extends State<TenantPage> {
                                       const SizedBox(width: 20),
                                       if (_selectedUnitNumber != null)
                                         Container(
-                                          margin: const EdgeInsets.only(right: 12),
+                                          margin:
+                                              const EdgeInsets.only(right: 12),
                                           child: ElevatedButton.icon(
                                             onPressed: () {
                                               setState(() {
                                                 _selectedUnitNumber = null;
                                               });
                                             },
-                                            icon: const Icon(Icons.clear, size: 18),
+                                            icon: const Icon(Icons.clear,
+                                                size: 18),
                                             label: const Text('Clear'),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.grey[100],
                                               foregroundColor: Colors.grey[700],
                                               elevation: 0,
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
-                                                side: BorderSide(color: Colors.grey[300]!),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                side: BorderSide(
+                                                    color: Colors.grey[300]!),
                                               ),
                                             ),
                                           ),
                                         ),
                                       StreamBuilder<QuerySnapshot>(
-                                        stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.parse(selectedBuildingNumber)).where('isOccupied', isEqualTo: false).snapshots(),
-                                        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                                        stream: FirebaseFirestore.instance
+                                            .collection('UnitNumber')
+                                            .where('building#',
+                                                isEqualTo: int.parse(
+                                                    selectedBuildingNumber))
+                                            .where('isOccupied',
+                                                isEqualTo: false)
+                                            .snapshots(),
+                                        builder: (BuildContext context,
+                                            AsyncSnapshot<QuerySnapshot>
+                                                snapshot) {
                                           if (snapshot.hasError) {
-                                            return const Text('Something went wrong');
+                                            return const Text(
+                                                'Something went wrong');
                                           }
-                                          if (snapshot.connectionState == ConnectionState.waiting) {
-                                            return const Center(child: CircularProgressIndicator());
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Center(
+                                                child:
+                                                    CircularProgressIndicator());
                                           }
-                                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                                            return const Text('No available units');
+                                          if (!snapshot.hasData ||
+                                              snapshot.data!.docs.isEmpty) {
+                                            return const Text(
+                                                'No available units');
                                           }
 
-                                          final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
-                                          final hasAvailableUnits = unitNumbers.isNotEmpty;
+                                          final unitNumbers = snapshot
+                                              .data!.docs
+                                              .map((doc) =>
+                                                  doc['unitNumber'].toString())
+                                              .toList();
+                                          final hasAvailableUnits =
+                                              unitNumbers.isNotEmpty;
 
                                           return ElevatedButton.icon(
-                                            onPressed: hasAvailableUnits ? () => _AssignTenantUserBuilding(int.parse(selectedBuildingNumber)) : null,
-                                            icon: const Icon(Icons.person_add, size: 20),
+                                            onPressed: hasAvailableUnits
+                                                ? () => _AssignTenantUserBuilding(
+                                                    int.parse(
+                                                        selectedBuildingNumber))
+                                                : null,
+                                            icon: const Icon(Icons.person_add,
+                                                size: 20),
                                             label: const Text('Add Tenant'),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: hasAvailableUnits ? Colors.blue[600] : Colors.grey[400],
-                                              foregroundColor: hasAvailableUnits ? Colors.white : Colors.grey[600],
-                                              elevation: hasAvailableUnits ? 2 : 0,
-                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                              backgroundColor: hasAvailableUnits
+                                                  ? Colors.blue[600]
+                                                  : Colors.grey[400],
+                                              foregroundColor: hasAvailableUnits
+                                                  ? Colors.white
+                                                  : Colors.grey[600],
+                                              elevation:
+                                                  hasAvailableUnits ? 2 : 0,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 14),
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
                                               ),
                                             ),
                                           );
@@ -958,27 +1164,47 @@ class _TenantPageState extends State<TenantPage> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: StreamBuilder<QuerySnapshot>(
-                              stream: selectedBuildingNumber == '0' ? FirebaseFirestore.instance.collection('tenant').snapshots() : FirebaseFirestore.instance.collection('tenant').where('buildingnumber', isEqualTo: selectedBuildingNumber).snapshots(),
+                              stream: selectedBuildingNumber == '0'
+                                  ? FirebaseFirestore.instance
+                                      .collection('tenant')
+                                      .snapshots()
+                                  : FirebaseFirestore.instance
+                                      .collection('tenant')
+                                      .where('buildingnumber',
+                                          isEqualTo: selectedBuildingNumber)
+                                      .snapshots(),
                               builder: (context, snapshot) {
                                 if (snapshot.hasError) {
-                                  return const Center(child: Text('Something went wrong'));
+                                  return const Center(
+                                      child: Text('Something went wrong'));
                                 }
                                 if (!snapshot.hasData) {
-                                  return const Center(child: CircularProgressIndicator());
+                                  return const Center(
+                                      child: CircularProgressIndicator());
                                 }
 
                                 final data = snapshot.data!.docs;
                                 List<QueryDocumentSnapshot> filteredData = data;
-                                if (selectedBuildingNumber != null && selectedBuildingNumber.isNotEmpty) {
+                                if (selectedBuildingNumber != null &&
+                                    selectedBuildingNumber.isNotEmpty) {
                                   filteredData = data.where((doc) {
-                                    final unitnumber = doc['buildingnumber']?.toString().trim().toLowerCase() ?? '';
-                                    final selectedUnit = selectedBuildingNumber.trim().toLowerCase();
+                                    final unitnumber = doc['buildingnumber']
+                                            ?.toString()
+                                            .trim()
+                                            .toLowerCase() ??
+                                        '';
+                                    final selectedUnit = selectedBuildingNumber
+                                        .trim()
+                                        .toLowerCase();
                                     return unitnumber == selectedUnit;
                                   }).toList();
                                 }
 
                                 final startIndex = _currentPage * _rowsPerPage;
-                                final endIndex = (startIndex + _rowsPerPage < filteredData.length) ? startIndex + _rowsPerPage : filteredData.length;
+                                final endIndex = (startIndex + _rowsPerPage <
+                                        filteredData.length)
+                                    ? startIndex + _rowsPerPage
+                                    : filteredData.length;
 
                                 return Column(
                                   children: [
@@ -1072,7 +1298,8 @@ class _TenantPageState extends State<TenantPage> {
                                           ),
                                           DataColumn(
                                             label: SizedBox(
-                                              width: 200, // Increased width to prevent overflow
+                                              width:
+                                                  200, // Increased width to prevent overflow
                                               child: Text(
                                                 'Action',
                                                 style: TextStyle(
@@ -1086,18 +1313,36 @@ class _TenantPageState extends State<TenantPage> {
                                         rows: List.generate(
                                           endIndex - startIndex,
                                           (index) {
-                                            final doc = filteredData[startIndex + index];
-                                            final firstname = doc['firstname'] ?? '';
-                                            final lastname = doc['lastname'] ?? '';
-                                            final unitnumber = doc['unitnumber'] ?? '';
-                                            final buildingnumber = doc['buildingnumber'] ?? '';
-                                            final userunitnumber = doc['unitnumber'] ?? '';
-                                            final contactnumber = doc['contactnumber'] ?? '';
-                                            final username = doc['username'] ?? '';
-                                            final password = doc['password'] ?? '';
-                                            final email = doc['email'] ?? 'No Email Provided Yet';
-                                            final profile = doc['profile'];
-                                            final rentalFee = int.parse(doc['rentalfee'].toString()) ?? '0';
+                                            final doc = filteredData[
+                                                startIndex + index];
+                                            final firstname =
+                                                doc['firstname'] ?? '';
+                                            final lastname =
+                                                doc['lastname'] ?? '';
+                                            final unitnumber =
+                                                doc['unitnumber'] ?? '';
+                                            final buildingnumber =
+                                                doc['buildingnumber'] ?? '';
+                                            final userunitnumber =
+                                                doc['unitnumber'] ?? '';
+                                            final contactnumber =
+                                                doc['contactnumber'] ?? '';
+                                            final username =
+                                                doc['username'] ?? '';
+                                            final password =
+                                                doc['password'] ?? '';
+                                            final email = doc['email'] ??
+                                                'No Email Provided Yet';
+                                            final data = doc.data()
+                                                as Map<String, dynamic>;
+                                            final profile =
+                                                data.containsKey('profile')
+                                                    ? data['profile'] ?? ''
+                                                    : '';
+                                            final rentalFee = int.parse(
+                                                    doc['rentalfee']
+                                                        .toString()) ??
+                                                '0';
 
                                             return DataRow(
                                               cells: [
@@ -1107,12 +1352,21 @@ class _TenantPageState extends State<TenantPage> {
                                                       if (profile.isNotEmpty) {
                                                         showDialog(
                                                           context: context,
-                                                          builder: (_) => Dialog(
-                                                            backgroundColor: Colors.transparent,
-                                                            child: InteractiveViewer(
+                                                          builder: (_) =>
+                                                              Dialog(
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .transparent,
+                                                            child:
+                                                                InteractiveViewer(
                                                               child: ClipRRect(
-                                                                borderRadius: BorderRadius.circular(10),
-                                                                child: Image.network(profile),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10),
+                                                                child: Image
+                                                                    .network(
+                                                                        profile),
                                                               ),
                                                             ),
                                                           ),
@@ -1122,14 +1376,19 @@ class _TenantPageState extends State<TenantPage> {
                                                     child: SizedBox(
                                                       width: 80,
                                                       child: CircleAvatar(
-                                                        backgroundColor: Colors.blue,
+                                                        backgroundColor:
+                                                            Colors.blue,
                                                         child: profile != ''
                                                             ? ClipOval(
-                                                                child: Image.network(profile),
+                                                                child: Image
+                                                                    .network(
+                                                                        profile),
                                                               )
                                                             : Text(
                                                                 '${firstname.isNotEmpty ? firstname[0] : ''}${lastname.isNotEmpty ? lastname[0] : ''}',
-                                                                style: const TextStyle(color: Colors.white),
+                                                                style: const TextStyle(
+                                                                    color: Colors
+                                                                        .white),
                                                               ),
                                                       ),
                                                     ),
@@ -1138,56 +1397,82 @@ class _TenantPageState extends State<TenantPage> {
                                                 DataCell(
                                                   SizedBox(
                                                     width: 100,
-                                                    child: Text(unitnumber, style: const TextStyle(color: Colors.black)),
+                                                    child: Text(unitnumber,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
                                                     width: 150,
-                                                    child: Text('$firstname $lastname', style: const TextStyle(color: Colors.black)),
+                                                    child: Text(
+                                                        '$firstname $lastname',
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
                                                     width: 120,
-                                                    child: Text(contactnumber, style: const TextStyle(color: Colors.black)),
+                                                    child: Text(contactnumber,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
                                                     width: 200,
-                                                    child: Text(email, style: const TextStyle(color: Colors.black)),
+                                                    child: Text(email,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
                                                     width: 120,
-                                                    child: Text(username, style: const TextStyle(color: Colors.black)),
+                                                    child: Text(username,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
                                                     width: 100,
-                                                    child: Text(rentalFee.toString(), style: const TextStyle(color: Colors.black)),
+                                                    child: Text(
+                                                        rentalFee.toString(),
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.black)),
                                                   ),
                                                 ),
                                                 DataCell(
                                                   SizedBox(
-                                                    width: 150, // Increased width to accommodate the row of buttons
+                                                    width:
+                                                        150, // Increased width to accommodate the row of buttons
                                                     child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
                                                       children: [
                                                         // Message Button
                                                         IconButton(
-                                                          icon: const Icon(Icons.message, size: 18),
+                                                          icon: const Icon(
+                                                              Icons.message,
+                                                              size: 18),
                                                           onPressed: () {
                                                             Navigator.push(
                                                                 context,
                                                                 MaterialPageRoute(
-                                                                    builder: (context) => messagePage(
-                                                                          userid: widget.userid,
-                                                                          firstname: firstname,
-                                                                        )));
+                                                                    builder:
+                                                                        (context) =>
+                                                                            messagePage(
+                                                                              userid: widget.userid,
+                                                                              firstname: firstname,
+                                                                            )));
                                                           },
                                                           tooltip: 'Message',
                                                         ),
@@ -1196,18 +1481,37 @@ class _TenantPageState extends State<TenantPage> {
                                                               // Dropdown for other actions
 
                                                               showDialog(
-                                                                  context: context,
-                                                                  builder: (BuildContext context) {
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (BuildContext
+                                                                          context) {
                                                                     return AlertDialog(
-                                                                      content: DropdownButton<String>(
-                                                                        value: null,
-                                                                        underline: Container(),
-                                                                        hint: Text('Select an action'),
-                                                                        icon: const Icon(Icons.more_vert),
-                                                                        items: ['Payment', 'View Sub-Account', 'Reset Password', 'Edit', 'Delete'].map((String value) {
-                                                                          return DropdownMenuItem<String>(
-                                                                            value: value,
-                                                                            child: Row(
+                                                                      content:
+                                                                          DropdownButton<
+                                                                              String>(
+                                                                        value:
+                                                                            null,
+                                                                        underline:
+                                                                            Container(),
+                                                                        hint: Text(
+                                                                            'Select an action'),
+                                                                        icon: const Icon(
+                                                                            Icons.more_vert),
+                                                                        items: [
+                                                                          'Payment',
+                                                                          'View Sub-Account',
+                                                                          'Reset Password',
+                                                                          'Edit',
+                                                                          'Delete'
+                                                                        ].map((String
+                                                                            value) {
+                                                                          return DropdownMenuItem<
+                                                                              String>(
+                                                                            value:
+                                                                                value,
+                                                                            child:
+                                                                                Row(
                                                                               children: [
                                                                                 Icon(
                                                                                   value == 'Payment'
@@ -1227,8 +1531,11 @@ class _TenantPageState extends State<TenantPage> {
                                                                             ),
                                                                           );
                                                                         }).toList(),
-                                                                        onChanged: (String? newValue) async {
-                                                                          if (newValue == 'Payment') {
+                                                                        onChanged:
+                                                                            (String?
+                                                                                newValue) async {
+                                                                          if (newValue ==
+                                                                              'Payment') {
                                                                             Navigator.push(
                                                                                 context,
                                                                                 MaterialPageRoute(
@@ -1240,7 +1547,8 @@ class _TenantPageState extends State<TenantPage> {
                                                                                     unitnumber: unitnumber,
                                                                                   ),
                                                                                 ));
-                                                                          } else if (newValue == 'View Sub-Account') {
+                                                                          } else if (newValue ==
+                                                                              'View Sub-Account') {
                                                                             showDialog(
                                                                               context: context,
                                                                               builder: (BuildContext context) {
@@ -1337,19 +1645,33 @@ class _TenantPageState extends State<TenantPage> {
                                                                                 );
                                                                               },
                                                                             );
-                                                                          } else if (newValue == 'Reset Password') {
-                                                                            ResetPassword(context, doc);
-                                                                          } else if (newValue == 'Edit') {
+                                                                          } else if (newValue ==
+                                                                              'Reset Password') {
+                                                                            ResetPassword(context,
+                                                                                doc);
+                                                                          } else if (newValue ==
+                                                                              'Edit') {
                                                                             _showEditTenantDialog(doc);
-                                                                          } else if (newValue == 'Delete') {
-                                                                            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-                                                                            Map<String, dynamic> ArchiveData = {...data, 'buildingnumber': "001", 'unitnumber': "001"};
+                                                                          } else if (newValue ==
+                                                                              'Delete') {
+                                                                            Map<String, dynamic>
+                                                                                data =
+                                                                                doc.data() as Map<String, dynamic>;
+                                                                            Map<String, dynamic>
+                                                                                ArchiveData =
+                                                                                {
+                                                                              ...data,
+                                                                              'buildingnumber': "001",
+                                                                              'unitnumber': "001"
+                                                                            };
                                                                             await FirebaseFirestore.instance.collection('Archive').doc(doc.id).set(ArchiveData);
                                                                             await FirebaseFirestore.instance.collection('tenant').doc(doc.id).delete();
 
-                                                                            final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
+                                                                            final unitQuery =
+                                                                                await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
 
-                                                                            for (var unitDoc in unitQuery.docs) {
+                                                                            for (var unitDoc
+                                                                                in unitQuery.docs) {
                                                                               await FirebaseFirestore.instance.collection('UnitNumber').doc(unitDoc.id).update({
                                                                                 'isOccupied': false,
                                                                               });
@@ -1361,10 +1683,12 @@ class _TenantPageState extends State<TenantPage> {
                                                                       ),
                                                                       actions: [
                                                                         ElevatedButton(
-                                                                            onPressed: () {
+                                                                            onPressed:
+                                                                                () {
                                                                               Navigator.pop(context);
                                                                             },
-                                                                            style: ElevatedButton.styleFrom(
+                                                                            style:
+                                                                                ElevatedButton.styleFrom(
                                                                               backgroundColor: Colors.red,
                                                                               foregroundColor: Colors.white,
                                                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1374,7 +1698,9 @@ class _TenantPageState extends State<TenantPage> {
                                                                     );
                                                                   });
                                                             },
-                                                            icon: const Icon(Icons.more_vert))
+                                                            icon: const Icon(
+                                                                Icons
+                                                                    .more_vert))
                                                       ],
                                                     ),
                                                   ),
@@ -1384,9 +1710,11 @@ class _TenantPageState extends State<TenantPage> {
                                           },
                                         )),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: List.generate(
                                           (data.length / _rowsPerPage).ceil(),
                                           (index) => Padding(
@@ -1398,10 +1726,17 @@ class _TenantPageState extends State<TenantPage> {
                                                 });
                                               },
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: _currentPage == index ? const Color(0xdd1E1E1E) : Colors.white,
-                                                foregroundColor: _currentPage == index ? Colors.white : const Color(0xdd1E1E1E),
+                                                backgroundColor: _currentPage ==
+                                                        index
+                                                    ? const Color(0xdd1E1E1E)
+                                                    : Colors.white,
+                                                foregroundColor: _currentPage ==
+                                                        index
+                                                    ? Colors.white
+                                                    : const Color(0xdd1E1E1E),
                                               ),
-                                              child: Text((index + 1).toString()),
+                                              child:
+                                                  Text((index + 1).toString()),
                                             ),
                                           ),
                                         ),

@@ -6,7 +6,8 @@ class messagePage extends StatefulWidget {
   final String userid;
   final String firstname;
 
-  const messagePage({Key? key, required this.userid, required this.firstname}) : super(key: key);
+  const messagePage({Key? key, required this.userid, required this.firstname})
+      : super(key: key);
 
   @override
   _messagePageState createState() => _messagePageState();
@@ -79,7 +80,8 @@ class _messagePageState extends State<messagePage> {
                           ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -103,9 +105,13 @@ class _messagePageState extends State<messagePage> {
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      final filteredTenants = snapshot.data!.docs.where((tenant) {
-                        final tenantData = tenant.data() as Map<String, dynamic>;
-                        final fullName = '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}'.toLowerCase();
+                      final filteredTenants =
+                          snapshot.data!.docs.where((tenant) {
+                        final tenantData =
+                            tenant.data() as Map<String, dynamic>;
+                        final fullName =
+                            '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}'
+                                .toLowerCase();
                         return fullName.contains(_searchQuery);
                       }).toList();
 
@@ -113,26 +119,44 @@ class _messagePageState extends State<messagePage> {
                         itemCount: filteredTenants.length,
                         itemBuilder: (context, index) {
                           final tenant = filteredTenants[index];
-                          final tenantData = tenant.data() as Map<String, dynamic>;
+                          final tenantData =
+                              tenant.data() as Map<String, dynamic>;
 
                           return StreamBuilder<QuerySnapshot>(
-                            stream: _firestore.collection('messages').where('participants', arrayContains: tenant.id).orderBy('timestamp', descending: true).limit(1).snapshots(),
+                            stream: _firestore
+                                .collection('messages')
+                                .where('participants', arrayContains: tenant.id)
+                                .orderBy('timestamp', descending: true)
+                                .limit(1)
+                                .snapshots(),
                             builder: (context, messageSnapshot) {
                               String lastMessage = '';
                               bool hasUnread = false;
                               DateTime? lastMessageTime;
 
-                              if (messageSnapshot.hasData && messageSnapshot.data!.docs.isNotEmpty) {
-                                final lastMessageData = messageSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                              if (messageSnapshot.hasData &&
+                                  messageSnapshot.data!.docs.isNotEmpty) {
+                                final lastMessageData =
+                                    messageSnapshot.data!.docs.first.data()
+                                        as Map<String, dynamic>;
                                 lastMessage = lastMessageData['message'] ?? '';
-                                hasUnread = !(lastMessageData['isRead'] ?? true) && (lastMessageData['receiverId'] == widget.userid || lastMessageData['senderId'] == widget.userid);
-                                lastMessageTime = lastMessageData['timestamp']?.toDate();
+                                hasUnread =
+                                    !(lastMessageData['isRead'] ?? true) &&
+                                        (lastMessageData['receiverId'] ==
+                                                widget.userid ||
+                                            lastMessageData['senderId'] ==
+                                                widget.userid);
+                                lastMessageTime =
+                                    lastMessageData['timestamp']?.toDate();
                               }
 
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: _selectedTenantId == tenant.id ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+                                  color: _selectedTenantId == tenant.id
+                                      ? Colors.blue.withOpacity(0.1)
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: ListTile(
@@ -144,31 +168,47 @@ class _messagePageState extends State<messagePage> {
                                   leading: CircleAvatar(
                                     radius: 24,
                                     backgroundColor: Colors.blue.shade100,
-                                    child: tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty
+                                    child: tenantData['profile'] != null &&
+                                            tenantData['profile']
+                                                .toString()
+                                                .isNotEmpty
                                         ? ClipOval(
                                             child: Image.network(
                                               tenantData['profile'],
                                               width: 100,
                                               height: 100,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) => Text(
-                                                '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                                              errorBuilder: (context, error,
+                                                      stackTrace) =>
+                                                  Text(
+                                                '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'
+                                                    .toUpperCase(),
                                                 style: TextStyle(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.blue.shade900,
                                                 ),
                                               ),
-                                              loadingBuilder: (context, child, loadingProgress) {
-                                                if (loadingProgress == null) return child;
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null)
+                                                  return child;
                                                 return CircularProgressIndicator(
-                                                  value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
+                                                  value: loadingProgress
+                                                              .expectedTotalBytes !=
+                                                          null
+                                                      ? loadingProgress
+                                                              .cumulativeBytesLoaded /
+                                                          loadingProgress
+                                                              .expectedTotalBytes!
+                                                      : null,
                                                 );
                                               },
                                             ),
                                           )
                                         : Text(
-                                            '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                                            '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'
+                                                .toUpperCase(),
                                             style: TextStyle(
                                               fontSize: 24,
                                               fontWeight: FontWeight.bold,
@@ -179,15 +219,20 @@ class _messagePageState extends State<messagePage> {
                                   title: Text(
                                     '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}',
                                     style: TextStyle(
-                                      fontWeight: hasUnread ? FontWeight.bold : FontWeight.w500,
+                                      fontWeight: hasUnread
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
                                       fontSize: 15,
                                     ),
                                   ),
                                   subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        lastMessage.isEmpty ? 'No messages yet' : lastMessage,
+                                        lastMessage.isEmpty
+                                            ? 'No messages yet'
+                                            : lastMessage,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -275,14 +320,16 @@ class _messagePageState extends State<messagePage> {
 
   Widget _buildChatContent() {
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('tenant').doc(_selectedTenantId).snapshots(),
+      stream:
+          _firestore.collection('tenant').doc(_selectedTenantId).snapshots(),
       builder: (context, tenantSnapshot) {
         if (!tenantSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
         final tenantData = tenantSnapshot.data!.data() as Map<String, dynamic>;
-        final tenantName = '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}';
+        final tenantName =
+            '${tenantData['firstname'] ?? ''} ${tenantData['lastname'] ?? ''}';
         final buildingNumber = tenantData['buildingnumber'];
         final unitNumber = tenantData['unitnumber'];
 
@@ -299,7 +346,8 @@ class _messagePageState extends State<messagePage> {
 
   Widget _buildUserProfile() {
     return StreamBuilder<DocumentSnapshot>(
-      stream: _firestore.collection('tenant').doc(_selectedTenantId).snapshots(),
+      stream:
+          _firestore.collection('tenant').doc(_selectedTenantId).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -325,7 +373,8 @@ class _messagePageState extends State<messagePage> {
               // Profile Picture
               GestureDetector(
                 onTap: () {
-                  if (tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty) {
+                  if (tenantData['profile'] != null &&
+                      tenantData['profile'].toString().isNotEmpty) {
                     showDialog(
                       context: context,
                       builder: (_) => Dialog(
@@ -340,9 +389,11 @@ class _messagePageState extends State<messagePage> {
                                 child: Image.network(
                                   tenantData['profile'],
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) => Center(
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Center(
                                     child: Text(
-                                      '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                                      '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'
+                                          .toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,
@@ -366,7 +417,8 @@ class _messagePageState extends State<messagePage> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.blue.shade100,
-                  child: tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty
+                  child: tenantData['profile'] != null &&
+                          tenantData['profile'].toString().isNotEmpty
                       ? ClipOval(
                           child: Image.network(
                             tenantData['profile'],
@@ -374,7 +426,8 @@ class _messagePageState extends State<messagePage> {
                             height: 100,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Text(
-                              '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                              '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'
+                                  .toUpperCase(),
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -384,13 +437,18 @@ class _messagePageState extends State<messagePage> {
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
                               );
                             },
                           ),
                         )
                       : Text(
-                          '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'.toUpperCase(),
+                          '${tenantData['firstname']?[0] ?? ''}${tenantData['lastname']?[0] ?? ''}'
+                              .toUpperCase(),
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -415,18 +473,27 @@ class _messagePageState extends State<messagePage> {
 
               // Contact Information Card
               _buildInfoCard('Contact Information', [
-                _buildInfoRow(Icons.person, 'Fullname', tenantData['firstname'] + ' ' + tenantData['lastname'] ?? 'N/A'),
-                _buildInfoRow(Icons.phone_outlined, 'Phone', tenantData['contactnumber'] ?? 'N/A'),
-                _buildInfoRow(Icons.verified_user, 'Username', tenantData['username'] ?? 'N/A'),
-                _buildInfoRow(Icons.money, 'Rental Fee', tenantData['rentalfee'].toString() ?? 'N/A'),
+                _buildInfoRow(
+                    Icons.person,
+                    'Fullname',
+                    tenantData['firstname'] + ' ' + tenantData['lastname'] ??
+                        'N/A'),
+                _buildInfoRow(Icons.phone_outlined, 'Phone',
+                    tenantData['contactnumber'] ?? 'N/A'),
+                _buildInfoRow(Icons.verified_user, 'Username',
+                    tenantData['username'] ?? 'N/A'),
+                _buildInfoRow(Icons.money, 'Rental Fee',
+                    tenantData['rentalfee'].toString() ?? 'N/A'),
               ]),
 
               const SizedBox(height: 16),
 
               // Property Information Card
               _buildInfoCard('Property Information', [
-                _buildInfoRow(Icons.business_outlined, 'Building', tenantData['buildingnumber']?.toString() ?? 'N/A'),
-                _buildInfoRow(Icons.door_front_door_outlined, 'Unit', tenantData['unitnumber']?.toString() ?? 'N/A'),
+                _buildInfoRow(Icons.business_outlined, 'Building',
+                    tenantData['buildingnumber']?.toString() ?? 'N/A'),
+                _buildInfoRow(Icons.door_front_door_outlined, 'Unit',
+                    tenantData['unitnumber']?.toString() ?? 'N/A'),
               ]),
 
               const SizedBox(height: 16),
@@ -435,7 +502,10 @@ class _messagePageState extends State<messagePage> {
                 _buildStreamBuilderInfoRow(
                   Icons.people_outlined,
                   'Sub Accounts',
-                  _firestore.collection('Sub-Tenant').where('mainAccountId', isEqualTo: _selectedTenantId).snapshots(),
+                  _firestore
+                      .collection('Sub-Tenant')
+                      .where('mainAccountId', isEqualTo: _selectedTenantId)
+                      .snapshots(),
                 ),
               ]),
 
@@ -537,7 +607,10 @@ class _messagePageState extends State<messagePage> {
 // Replace your existing rental info card section with this:
   Widget _buildRentalInfoCard() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('rentalRecord').where('tenantId', isEqualTo: _selectedTenantId).snapshots(),
+      stream: _firestore
+          .collection('sales_record')
+          .where('uid', isEqualTo: _selectedTenantId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildInfoCard('Rental Information', [
@@ -547,18 +620,26 @@ class _messagePageState extends State<messagePage> {
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildInfoCard('Rental Information', [
-            _buildInfoRow(Icons.calendar_month, 'Monthly Fee', 'No rental record found'),
+            _buildInfoRow(
+                Icons.calendar_month, 'Monthly Fee', 'No rental record found'),
           ]);
         }
 
-        // Get the rental record
         final rentalDoc = snapshot.data!.docs.first;
         final rentalData = rentalDoc.data() as Map<String, dynamic>;
 
         final status = rentalData['status']?.toString() ?? 'Unknown';
-        final rentalFee = rentalData['rentalfee']?.toString() ?? 'N/A';
-        final timestamp = rentalData['timestamp'] as Timestamp?;
-        final dueDate = timestamp?.toDate();
+        final rentalFee = rentalData['rental_cost']?.toString() ?? 'N/A';
+        final dueDateStr = rentalData['due_date'] as String?; // "03/07/2025"
+        DateTime? dueDate;
+
+        try {
+          if (dueDateStr != null) {
+            dueDate = DateFormat('dd/MM/yyyy').parse(dueDateStr);
+          }
+        } catch (_) {
+          dueDate = null;
+        }
 
         final statusColor = _getRentalStatusColor(status, dueDate);
         final statusText = _getStatusText(status, dueDate);
@@ -616,7 +697,8 @@ class _messagePageState extends State<messagePage> {
   }
 
 // Add this new method for colored info rows
-  Widget _buildColoredInfoRow(IconData icon, String label, String value, Color valueColor) {
+  Widget _buildColoredInfoRow(
+      IconData icon, String label, String value, Color valueColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -657,17 +739,21 @@ class _messagePageState extends State<messagePage> {
     );
   }
 
-  Widget _buildStreamBuilderInfoRow(IconData icon, String label, Stream<QuerySnapshot> stream) {
+  Widget _buildStreamBuilderInfoRow(
+      IconData icon, String label, Stream<QuerySnapshot>? stream) {
+    if (stream == null) {
+      return Text(
+        'No stream provided',
+        style: TextStyle(fontSize: 14, color: Colors.red.shade400),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.grey.shade600,
-          ),
+          Icon(icon, size: 18, color: Colors.grey.shade600),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -684,7 +770,7 @@ class _messagePageState extends State<messagePage> {
                 const SizedBox(height: 2),
                 StreamBuilder<QuerySnapshot>(
                   stream: stream,
-                  builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return const Text(
                         'Error loading data',
@@ -694,7 +780,8 @@ class _messagePageState extends State<messagePage> {
                         ),
                       );
                     }
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+
+                    if (!snapshot.hasData) {
                       return const Text(
                         'Loading...',
                         style: TextStyle(
@@ -704,10 +791,9 @@ class _messagePageState extends State<messagePage> {
                       );
                     }
 
-                    final count = snapshot.data?.docs.length ?? 0;
+                    final count = snapshot.data!.docs.length;
                     final displayText = '$count/3';
 
-                    // Determine color based on count
                     Color textColor;
                     Color backgroundColor;
 
@@ -720,16 +806,14 @@ class _messagePageState extends State<messagePage> {
                     } else if (count == 2) {
                       textColor = Colors.orange.shade800;
                       backgroundColor = Colors.orange.shade100;
-                    } else if (count >= 3) {
+                    } else {
                       textColor = Colors.red.shade800;
                       backgroundColor = Colors.red.shade100;
-                    } else {
-                      textColor = Colors.grey.shade700;
-                      backgroundColor = Colors.grey.shade100;
                     }
 
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: backgroundColor,
                         borderRadius: BorderRadius.circular(12),
@@ -912,7 +996,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final messageTime = timestamp.toDate();
     final localTime = messageTime.toLocal();
 
-    if (DateFormat('yyyy-MM-dd').format(now) == DateFormat('yyyy-MM-dd').format(localTime)) {
+    if (DateFormat('yyyy-MM-dd').format(now) ==
+        DateFormat('yyyy-MM-dd').format(localTime)) {
       return DateFormat('h:mm a').format(localTime);
     } else if (now.difference(localTime).inDays == 1) {
       return 'Yesterday ${DateFormat('h:mm a').format(localTime)}';
@@ -1019,7 +1104,11 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Container(
               color: Colors.grey.shade50,
               child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('messages').where('participants', arrayContains: widget.tenantId).orderBy('timestamp', descending: true).snapshots(),
+                stream: _firestore
+                    .collection('messages')
+                    .where('participants', arrayContains: widget.tenantId)
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
@@ -1031,7 +1120,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
                   final messages = snapshot.data!.docs.where((doc) {
                     final message = doc.data() as Map<String, dynamic>;
-                    return _searchQuery.isEmpty || message['message'].toString().toLowerCase().contains(_searchQuery);
+                    return _searchQuery.isEmpty ||
+                        message['message']
+                            .toString()
+                            .toLowerCase()
+                            .contains(_searchQuery);
                   }).toList();
 
                   return ListView.builder(
@@ -1040,18 +1133,23 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final message = messages[index].data() as Map<String, dynamic>;
+                      final message =
+                          messages[index].data() as Map<String, dynamic>;
                       final isMe = message['senderId'] == adminId;
                       final timestamp = message['timestamp'] as Timestamp?;
 
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
                         child: Column(
-                          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          crossAxisAlignment: isMe
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
                           children: [
                             Container(
                               constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.7,
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.7,
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -1062,8 +1160,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                 borderRadius: BorderRadius.only(
                                   topLeft: const Radius.circular(16),
                                   topRight: const Radius.circular(16),
-                                  bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
-                                  bottomRight: isMe ? Radius.zero : const Radius.circular(16),
+                                  bottomLeft: isMe
+                                      ? const Radius.circular(16)
+                                      : Radius.zero,
+                                  bottomRight: isMe
+                                      ? Radius.zero
+                                      : const Radius.circular(16),
                                 ),
                                 boxShadow: [
                                   BoxShadow(

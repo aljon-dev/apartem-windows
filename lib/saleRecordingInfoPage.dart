@@ -80,13 +80,38 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
   int annualComputation = 0;
 
   Stream<List<saleInfo>> getsaleInfos() {
-    return _firestore.collection('sales_record').where('uid', isEqualTo: widget.uid).snapshots().map((snapshot) {
+    return _firestore
+        .collection('sales_record')
+        .where('uid', isEqualTo: widget.uid)
+        .snapshots()
+        .map((snapshot) {
       return snapshot.docs.map((doc) => saleInfo.fromFirestore(doc)).toList();
     });
   }
 
   Future<void> getAnnualComputation() async {
-    final snapshot = await _firestore.collection('sales_record').where('uid', isEqualTo: widget.uid).get();
+    final snapshot = await _firestore
+        .collection('sales_record')
+        .where('uid', isEqualTo: widget.uid)
+        .get();
+    for (var doc in snapshot.docs) {
+      final saleRef = _firestore.collection('sales_record').doc(doc.id);
+      final paymentsSnapshot = await saleRef.collection('payments').get();
+
+      int totalPaid = 0;
+      for (var p in paymentsSnapshot.docs) {
+        totalPaid += int.tryParse(p['amount'].toString()) ?? 0;
+      }
+
+      final rentalCost = int.tryParse(doc['rental_cost'].toString()) ?? 0;
+      final balance = rentalCost - totalPaid;
+
+      await saleRef.update({
+        'amount_paid': totalPaid,
+        'balance': balance,
+        'status': balance <= 0 ? 'Paid' : 'partial',
+      });
+    }
 
     int total = 0;
     for (var doc in snapshot.docs) {
@@ -162,13 +187,19 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
   Future<void> sendMonthlyBills() async {
     final TextEditingController rentalFee = TextEditingController();
     final TextEditingController partialAmount = TextEditingController();
-    String selectedMonth = DateFormat('MMMM').format(DateTime.now()); // Auto-filled
+    String selectedMonth =
+        DateFormat('MMMM').format(DateTime.now()); // Auto-filled
     String selectedYear = DateTime.now().year.toString(); // Auto-filled
     String? selectedPaymentMode = 'Cash';
     DateTime selectedDueDate = DateTime.now().add(const Duration(days: 30));
 
     // Check for duplicate billing
-    final existing = await _firestore.collection('sales_record').where('uid', isEqualTo: widget.uid).where('month', isEqualTo: selectedMonth).where('year', isEqualTo: selectedYear).get();
+    final existing = await _firestore
+        .collection('sales_record')
+        .where('uid', isEqualTo: widget.uid)
+        .where('month', isEqualTo: selectedMonth)
+        .where('year', isEqualTo: selectedYear)
+        .get();
 
     if (existing.docs.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,7 +207,6 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
       );
       return;
     }
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -244,8 +274,12 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                       border: OutlineInputBorder(),
                     ),
                     value: selectedPaymentMode,
-                    items: ['Cash', 'GCash'].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
-                    onChanged: (val) => setState(() => selectedPaymentMode = val),
+                    items: ['Cash', 'GCash']
+                        .map((mode) =>
+                            DropdownMenuItem(value: mode, child: Text(mode)))
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => selectedPaymentMode = val),
                   ),
                   const SizedBox(height: 10),
 
@@ -265,7 +299,8 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                             setState(() => selectedDueDate = picked);
                           }
                         },
-                        child: Text(DateFormat('dd/MM/yyyy').format(selectedDueDate)),
+                        child: Text(
+                            DateFormat('dd/MM/yyyy').format(selectedDueDate)),
                       ),
                     ],
                   ),
@@ -294,16 +329,23 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                   final isPartial = partialAmount.text.isNotEmpty;
 
                   final record = {
-                    'datetime': DateFormat('yyyy-MM-dd – HH:mm').format(DateTime.now()),
+                    'datetime':
+                        DateFormat('yyyy-MM-dd – HH:mm').format(DateTime.now()),
                     'month': selectedMonth,
                     'year': selectedYear,
-                    'due_date': DateFormat('dd/MM/yyyy').format(selectedDueDate),
+                    'due_date':
+                        DateFormat('dd/MM/yyyy').format(selectedDueDate),
                     'due_day': selectedDueDate.day,
                     'due_month_number': selectedDueDate.month,
                     'due_year': selectedDueDate.year,
                     'rental_cost': rentalFee.text,
-                    'amount_paid': isPartial ? partialAmount.text : rentalFee.text,
-                    'balance': isPartial ? (int.parse(rentalFee.text) - int.parse(partialAmount.text)).toString() : '0',
+                    'amount_paid':
+                        isPartial ? partialAmount.text : rentalFee.text,
+                    'balance': isPartial
+                        ? (int.parse(rentalFee.text) -
+                                int.parse(partialAmount.text))
+                            .toString()
+                        : '0',
                     'payment_mode': selectedPaymentMode,
                     'payment_type': isPartial ? 'partial' : 'full',
                     'status': isPartial ? 'partial' : 'pending',
@@ -337,7 +379,10 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
               Navigator.pop(context);
             },
             icon: const Icon(Icons.arrow_back)),
-        actions: [IconButton(onPressed: () => sendMonthlyBills(), icon: Icon(Icons.send))],
+        actions: [
+          IconButton(
+              onPressed: () => sendMonthlyBills(), icon: Icon(Icons.send))
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -381,7 +426,18 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                         return const CircularProgressIndicator();
                       }
 
-                      final sales = snapshot.data!;
+                      final rawSales = snapshot.data!;
+                      final uniqueSales =
+                          <String, saleInfo>{}; // key: month-year
+
+                      for (var sale in rawSales) {
+                        final key = '${sale.month}-${sale.year}';
+                        if (!uniqueSales.containsKey(key)) {
+                          uniqueSales[key] = sale;
+                        }
+                      }
+
+                      final sales = uniqueSales.values.toList();
 
                       return ListView.builder(
                           itemCount: sales.length,
@@ -389,7 +445,9 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                             final salelist = sales[index];
 
                             return Card(
-                              color: salelist.status.toLowerCase() == 'paid' ? Colors.green.shade100 : Colors.red.shade100,
+                              color: salelist.status.toLowerCase() == 'paid'
+                                  ? Colors.green.shade100
+                                  : Colors.red.shade100,
                               child: InkWell(
                                 onTap: () {
                                   showDialog(
@@ -416,13 +474,16 @@ class _saleRecordingInfoPageState extends State<saleRecordingInfoPage> {
                                     padding: const EdgeInsets.all(16),
                                     child: Container(
                                         child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text('Month: ${salelist.month}'),
                                         const SizedBox(height: 10),
-                                        Text('Payer Name: ${salelist.payer_name}'),
+                                        Text(
+                                            'Payer Name: ${salelist.payer_name}'),
                                         const SizedBox(height: 10),
-                                        Text('Rental Cost: ${salelist.rental_cost}'),
+                                        Text(
+                                            'Rental Cost: ${salelist.rental_cost}'),
                                         const SizedBox(height: 10),
                                         Text('Status: ${salelist.status}'),
                                         const SizedBox(height: 10),

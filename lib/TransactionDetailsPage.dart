@@ -26,14 +26,17 @@ class TransactionDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('sales_record').doc(id).get(),
+      future:
+          FirebaseFirestore.instance.collection('sales_record').doc(id).get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const Scaffold(body: Center(child: Text('Transaction not found.')));
+          return const Scaffold(
+              body: Center(child: Text('Transaction not found.')));
         }
 
         final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -70,13 +73,17 @@ class TransactionDetailsPage extends StatelessWidget {
                     children: [
                       Text(
                         "$month $year",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
                       Icon(statusIcon, color: statusColor, size: 60),
                       Text(
                         "Transaction ${status.toUpperCase()}",
-                        style: TextStyle(fontSize: 16, color: statusColor, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 16,
+                            color: statusColor,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -88,11 +95,51 @@ class TransactionDetailsPage extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text("Rental Cost: ₱ $rentalCost"),
                 const SizedBox(height: 10),
-                Text("Amount Paid: ₱ $amountPaid"),
+                FutureBuilder<QuerySnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('sales_record')
+                      .doc(id)
+                      .collection('payments')
+                      .get(),
+                  builder: (context, paymentsSnapshot) {
+                    if (paymentsSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: LinearProgressIndicator(),
+                      );
+                    }
+
+                    if (!paymentsSnapshot.hasData ||
+                        paymentsSnapshot.data!.docs.isEmpty) {
+                      return const Text("No payments made yet.");
+                    }
+
+                    double amountPaid = 0;
+                    for (var doc in paymentsSnapshot.data!.docs) {
+                      amountPaid +=
+                          double.tryParse(doc['amount'].toString()) ?? 0;
+                    }
+
+                    final rentalCostValue = double.tryParse(rentalCost) ?? 0;
+                    final balance = rentalCostValue - amountPaid;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 10),
+                        Text("Amount Paid: ₱ ${amountPaid.toStringAsFixed(2)}"),
+                        const SizedBox(height: 10),
+                        Text(
+                            "Remaining Balance: ₱ ${balance.toStringAsFixed(2)}"),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(height: 10),
-                Text("Remaining Balance: ₱ $balance"),
-                const SizedBox(height: 10),
-                const Text("Payment Mode:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text("Payment Mode:",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: paymentMode != 'N/A' ? paymentMode : null,
@@ -101,13 +148,18 @@ class TransactionDetailsPage extends StatelessWidget {
                   }).toList(),
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   onChanged: (String? newMode) async {
                     if (newMode != null) {
-                      await FirebaseFirestore.instance.collection('sales_record').doc(id).update({'payment_mode': newMode});
+                      await FirebaseFirestore.instance
+                          .collection('sales_record')
+                          .doc(id)
+                          .update({'payment_mode': newMode});
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Payment mode updated to $newMode")),
+                        SnackBar(
+                            content: Text("Payment mode updated to $newMode")),
                       );
                     }
                   },
@@ -119,7 +171,8 @@ class TransactionDetailsPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Divider(),
                 const SizedBox(height: 10),
-                const Text("Proof of Payment:", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text("Proof of Payment:",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 proofUrl.isNotEmpty && proofUrl != "N/A"
                     ? GestureDetector(
@@ -127,7 +180,8 @@ class TransactionDetailsPage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => FullScreenImageViewer(imageUrl: proofUrl),
+                              builder: (_) =>
+                                  FullScreenImageViewer(imageUrl: proofUrl),
                             ),
                           );
                         },
@@ -137,17 +191,24 @@ class TransactionDetailsPage extends StatelessWidget {
                             proofUrl,
                             height: 200,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Text("Failed to load image."),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Text("Failed to load image."),
                           ),
                         ),
                       )
                     : const Text("No proof of payment uploaded."),
                 const SizedBox(height: 30),
                 const Divider(),
-                const Text("Payment History", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text("Payment History",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 FutureBuilder<QuerySnapshot>(
-                  future: FirebaseFirestore.instance.collection('sales_record').doc(id).collection('payments').orderBy('timestamp', descending: true).get(),
+                  future: FirebaseFirestore.instance
+                      .collection('sales_record')
+                      .doc(id)
+                      .collection('payments')
+                      .orderBy('timestamp', descending: true)
+                      .get(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -159,11 +220,18 @@ class TransactionDetailsPage extends StatelessWidget {
                     return Column(
                       children: snapshot.data!.docs.map((doc) {
                         final payment = doc.data() as Map<String, dynamic>;
-                        final timestamp = payment['timestamp'] != null ? (payment['timestamp'] as Timestamp).toDate() : null;
-                        final String paymentStatus = (payment['status'] ?? '').toLowerCase();
-                        final String status = (payment['status'] ?? 'unpaid').toLowerCase();
-                        final String type = (payment['payment_type'] ?? '').toLowerCase();
-                        final String label = type == 'partial' ? 'Partial - ${status[0].toUpperCase()}${status.substring(1)}' : '${status[0].toUpperCase()}${status.substring(1)}';
+                        final timestamp = payment['timestamp'] != null
+                            ? (payment['timestamp'] as Timestamp).toDate()
+                            : null;
+                        final String paymentStatus =
+                            (payment['status'] ?? '').toLowerCase();
+                        final String status =
+                            (payment['status'] ?? 'unpaid').toLowerCase();
+                        final String type =
+                            (payment['payment_type'] ?? '').toLowerCase();
+                        final String label = type == 'partial'
+                            ? 'Partial - ${status[0].toUpperCase()}${status.substring(1)}'
+                            : '${status[0].toUpperCase()}${status.substring(1)}';
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ListTile(
@@ -173,13 +241,15 @@ class TransactionDetailsPage extends StatelessWidget {
                             ),
                             trailing: Text(
                               label,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             onTap: () async {
                               final updated = await showModalBottomSheet(
                                 context: context,
                                 shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(16)),
                                 ),
                                 builder: (_) => PaymentStatusEditor(
                                   salesId: id,
@@ -204,7 +274,9 @@ class TransactionDetailsPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: status.toLowerCase() == 'paid' ? null : () => updateStatus(context, 'unpaid'),
+                        onPressed: status.toLowerCase() == 'paid'
+                            ? null
+                            : () => updateStatus(context, 'unpaid'),
                         icon: const Icon(Icons.cancel),
                         label: const Text("Unpaid"),
                         style: ElevatedButton.styleFrom(
@@ -219,7 +291,9 @@ class TransactionDetailsPage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: status.toLowerCase() == 'paid' ? null : () => updateStatus(context, 'paid'),
+                        onPressed: status.toLowerCase() == 'paid'
+                            ? null
+                            : () => updateStatus(context, 'paid'),
                         icon: const Icon(Icons.check),
                         label: const Text("Paid"),
                         style: ElevatedButton.styleFrom(
@@ -243,7 +317,10 @@ class TransactionDetailsPage extends StatelessWidget {
 
   void updateStatus(BuildContext context, String newStatus) async {
     try {
-      await FirebaseFirestore.instance.collection('sales_record').doc(id).update({'status': newStatus});
+      await FirebaseFirestore.instance
+          .collection('sales_record')
+          .doc(id)
+          .update({'status': newStatus});
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Status updated to ${newStatus.toUpperCase()}")),
@@ -269,7 +346,8 @@ class FullScreenImageViewer extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Proof of Payment", style: TextStyle(color: Colors.white)),
+        title: const Text("Proof of Payment",
+            style: TextStyle(color: Colors.white)),
         elevation: 0,
       ),
       body: Center(
@@ -316,7 +394,12 @@ class _PaymentStatusEditorState extends State<PaymentStatusEditor> {
   }
 
   Future<void> updatePaymentStatus(String newStatus) async {
-    await FirebaseFirestore.instance.collection('sales_record').doc(widget.salesId).collection('payments').doc(widget.paymentId).update({'status': newStatus});
+    await FirebaseFirestore.instance
+        .collection('sales_record')
+        .doc(widget.salesId)
+        .collection('payments')
+        .doc(widget.paymentId)
+        .update({'status': newStatus});
     setState(() {
       currentStatus = newStatus;
     });
@@ -335,7 +418,8 @@ class _PaymentStatusEditorState extends State<PaymentStatusEditor> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text("Update Payment Status", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text("Update Payment Status",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -354,7 +438,8 @@ class _PaymentStatusEditorState extends State<PaymentStatusEditor> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isUnpaid ? null : () => updatePaymentStatus('unpaid'),
+                  onPressed:
+                      isUnpaid ? null : () => updatePaymentStatus('unpaid'),
                   icon: const Icon(Icons.cancel),
                   label: const Text('Mark as Unpaid'),
                   style: ElevatedButton.styleFrom(

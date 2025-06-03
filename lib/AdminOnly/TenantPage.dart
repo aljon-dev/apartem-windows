@@ -15,6 +15,7 @@ class TenantPage extends StatefulWidget {
 class _TenantPageState extends State<TenantPage> {
   String? _selectedUnitNumber;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isSubmittingTenant = false;
 
   // Replace your _AssignTenantUserBuilding method with this:
 
@@ -33,7 +34,11 @@ class _TenantPageState extends State<TenantPage> {
     bool isShowPassword = false;
 
     // Get available units first
-    final unitsSnapshot = await _firestore.collection('UnitNumber').where('building#', isEqualTo: buildingNumber).where('isOccupied', isEqualTo: false).get();
+    final unitsSnapshot = await _firestore
+        .collection('UnitNumber')
+        .where('building#', isEqualTo: buildingNumber)
+        .where('isOccupied', isEqualTo: false)
+        .get();
 
     if (unitsSnapshot.docs.isEmpty) {
       if (mounted) {
@@ -64,7 +69,10 @@ class _TenantPageState extends State<TenantPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       StreamBuilder<QuerySnapshot>(
-                        stream: _firestore.collection('building').orderBy('building').snapshots(),
+                        stream: _firestore
+                            .collection('building')
+                            .orderBy('building')
+                            .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
                             return const Text('Error loading buildings');
@@ -74,8 +82,11 @@ class _TenantPageState extends State<TenantPage> {
                           }
 
                           final buildings = snapshot.data!.docs;
-                          final sortedUnits = [...availableUnits] // copy the list
-                            ..sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+                          final sortedUnits = [
+                            ...availableUnits
+                          ] // copy the list
+                            ..sort(
+                                (a, b) => int.parse(a).compareTo(int.parse(b)));
                           return Column(
                             children: [
                               DropdownButtonFormField<String>(
@@ -102,14 +113,24 @@ class _TenantPageState extends State<TenantPage> {
                                   });
 
                                   if (value != null) {
-                                    final unitSnap = await _firestore.collection('UnitNumber').where('building#', isEqualTo: int.parse(value)).where('isOccupied', isEqualTo: false).get();
+                                    final unitSnap = await _firestore
+                                        .collection('UnitNumber')
+                                        .where('building#',
+                                            isEqualTo: int.parse(value))
+                                        .where('isOccupied', isEqualTo: false)
+                                        .get();
 
                                     dialogSetState(() {
-                                      availableUnits = unitSnap.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                                      availableUnits = unitSnap.docs
+                                          .map((doc) =>
+                                              doc['unitNumber'].toString())
+                                          .toList();
                                     });
                                   }
                                 },
-                                validator: (value) => value == null ? 'Please select a building' : null,
+                                validator: (value) => value == null
+                                    ? 'Please select a building'
+                                    : null,
                               ),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
@@ -129,7 +150,9 @@ class _TenantPageState extends State<TenantPage> {
                                     selectedUnitNumber = value;
                                   });
                                 },
-                                validator: (value) => value == null ? 'Please select a unit number' : null,
+                                validator: (value) => value == null
+                                    ? 'Please select a unit number'
+                                    : null,
                               ),
                             ],
                           );
@@ -199,7 +222,9 @@ class _TenantPageState extends State<TenantPage> {
                               });
                             },
                             icon: Icon(
-                              isShowPassword ? Icons.visibility : Icons.visibility_off,
+                              isShowPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
                           ),
                         ),
@@ -225,7 +250,8 @@ class _TenantPageState extends State<TenantPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter email address';
                           }
-                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          final emailRegex =
+                              RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                           if (!emailRegex.hasMatch(value)) {
                             return 'Enter a valid email';
                           }
@@ -272,104 +298,157 @@ class _TenantPageState extends State<TenantPage> {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (formKey.currentState!.validate()) {
-                      final username = usernameController.text.trim();
-                      final contact = contactController.text.trim();
+                  onPressed: _isSubmittingTenant
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              _isSubmittingTenant = true;
+                            });
 
-                      // Check if username already exists
-                      final existingUser = await _firestore.collection('tenant').where('username', isEqualTo: username).get();
-                      if (existingUser.docs.isNotEmpty) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Username already exists'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                        }
-                        return;
-                      }
+                            try {
+                              final username = usernameController.text.trim();
+                              final contact = contactController.text.trim();
 
-                      // Validate contact number: must be exactly 11 digits and numeric
-                      final contactRegExp = RegExp(r'^\d{11}$');
-                      if (!contactRegExp.hasMatch(contact)) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Invalid contact number (must be 11 digits)'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                        }
-                        return;
-                      }
+                              // Check if username already exists
+                              final existingUser = await _firestore
+                                  .collection('tenant')
+                                  .where('username', isEqualTo: username)
+                                  .get();
+                              if (existingUser.docs.isNotEmpty) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Username already exists'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
 
-                      try {
-// ✅ Add tenant and get the doc reference
-                        final tenantDoc = await _firestore.collection('tenant').add({
-                          'firstname': firstNameController.text,
-                          'lastname': lastNameController.text,
-                          'middlename': middleNameController.text,
-                          'unitnumber': selectedUnitNumber,
-                          'username': username,
-                          'password': passwordController.text,
-                          'contactnumber': contact,
-                          'buildingnumber': selectedBuilding,
-                          'rentalfee': int.parse(rentalFeeController.text),
-                          'email': emailController.text,
-                        });
+                              // Validate contact number
+                              final contactRegExp = RegExp(r'^\d{11}$');
+                              if (!contactRegExp.hasMatch(contact)) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Invalid contact number (must be 11 digits)'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
 
-// ✅ Mark unit as occupied
-                        final unitQuery = await _firestore.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnitNumber!)).where('building#', isEqualTo: int.tryParse(selectedBuilding!)).get();
-                        if (unitQuery.docs.isNotEmpty) {
-                          await unitQuery.docs.first.reference.update({'isOccupied': true});
-                        }
+                              // 🧾 Add tenant, mark unit occupied, and add sales record
+                              final tenantDoc =
+                                  await _firestore.collection('tenant').add({
+                                'firstname': firstNameController.text,
+                                'lastname': lastNameController.text,
+                                'middlename': middleNameController.text,
+                                'unitnumber': selectedUnitNumber,
+                                'username': username,
+                                'password': passwordController.text,
+                                'contactnumber': contact,
+                                'buildingnumber': selectedBuilding,
+                                'rentalfee':
+                                    int.parse(rentalFeeController.text),
+                                'email': emailController.text,
+                              });
 
-// ✅ Now it's safe to use tenantDoc.id
-                        final now = DateTime.now();
-                        final currentMonth = DateFormat('MMMM').format(now);
-                        final currentYear = now.year.toString();
-                        final formattedDateTime = DateFormat('yyyy-MM-dd – HH:mm').format(now);
-                        final dueDate = now.add(const Duration(days: 30));
-                        final formattedDueDate = DateFormat('dd/MM/yyyy').format(dueDate);
+                              final unitQuery = await _firestore
+                                  .collection('UnitNumber')
+                                  .where('unitNumber',
+                                      isEqualTo:
+                                          int.tryParse(selectedUnitNumber!))
+                                  .where('building#',
+                                      isEqualTo:
+                                          int.tryParse(selectedBuilding!))
+                                  .get();
+                              if (unitQuery.docs.isNotEmpty) {
+                                await unitQuery.docs.first.reference
+                                    .update({'isOccupied': true});
+                              }
 
-// Add auto-generated sales record
-                        await _firestore.collection('sales_record').add({
-                          'datetime': formattedDateTime,
-                          'due_date': formattedDueDate,
-                          'due_day': dueDate.day,
-                          'due_month_number': dueDate.month,
-                          'due_year': dueDate.year,
-                          'month': currentMonth,
-                          'payer_name': '${firstNameController.text} ${lastNameController.text}',
-                          'rental_cost': int.parse(rentalFeeController.text),
-                          'status': 'Unpaid',
-                          'uid': tenantDoc.id,
-                          'year': currentYear,
-                        });
+                              final now = DateTime.now();
+                              final currentMonth =
+                                  DateFormat('MMMM').format(now);
+                              final currentYear = now.year.toString();
+                              final formattedDateTime =
+                                  DateFormat('yyyy-MM-dd – HH:mm').format(now);
+                              final dueDate = now.add(const Duration(days: 30));
+                              final formattedDueDate =
+                                  DateFormat('dd/MM/yyyy').format(dueDate);
 
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tenant assigned successfully'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                          Navigator.of(context).pop();
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
+// 📉 Check for existing sales_record before adding (MOBILE-STYLE LOGIC)
+                              await Future.delayed(
+                                  const Duration(milliseconds: 300));
+
+                              final existingBillSnapshot = await _firestore
+                                  .collection('sales_record')
+                                  .where('uid', isEqualTo: tenantDoc.id)
+                                  .where('month', isEqualTo: currentMonth)
+                                  .where('year', isEqualTo: currentYear)
+                                  .get();
+
+                              if (existingBillSnapshot.docs.isEmpty) {
+                                await _firestore
+                                    .collection('sales_record')
+                                    .add({
+                                  'datetime': formattedDateTime,
+                                  'due_date': formattedDueDate,
+                                  'due_day': dueDate.day,
+                                  'due_month_number': dueDate.month,
+                                  'due_year': dueDate.year,
+                                  'month': currentMonth,
+                                  'payer_name':
+                                      '${firstNameController.text} ${lastNameController.text}',
+                                  'rental_cost':
+                                      int.parse(rentalFeeController.text),
+                                  'status': 'Unpaid',
+                                  'uid': tenantDoc.id,
+                                  'unit': selectedUnitNumber,
+                                  'building': selectedBuilding,
+                                  'year': currentYear,
+                                  'amount_paid': 0,
+                                  'balance':
+                                      int.parse(rentalFeeController.text),
+                                  'payment_mode': '',
+                                });
+                              } else {
+                                print('Billing already exists — skipping');
+                              }
+
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('Tenant assigned successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                Navigator.of(context).pop();
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _isSubmittingTenant = false;
+                                });
+                              }
+                            }
+                          }
+                        },
                   child: const Text('Assign Tenant'),
                 ),
               ],
@@ -382,12 +461,18 @@ class _TenantPageState extends State<TenantPage> {
 
   Future<void> _showEditTenantDialog(QueryDocumentSnapshot doc) async {
     final tenantData = doc.data() as Map<String, dynamic>;
-    final firstNameController = TextEditingController(text: tenantData['firstname']);
-    final lastNameController = TextEditingController(text: tenantData['lastname']);
-    final middleNameController = TextEditingController(text: tenantData['middlename'] ?? '');
-    final usernameController = TextEditingController(text: tenantData['username']);
-    final contactController = TextEditingController(text: tenantData['contactnumber']);
-    final rentalFeeController = TextEditingController(text: tenantData['rentalfee']?.toString() ?? '0');
+    final firstNameController =
+        TextEditingController(text: tenantData['firstname']);
+    final lastNameController =
+        TextEditingController(text: tenantData['lastname']);
+    final middleNameController =
+        TextEditingController(text: tenantData['middlename'] ?? '');
+    final usernameController =
+        TextEditingController(text: tenantData['username']);
+    final contactController =
+        TextEditingController(text: tenantData['contactnumber']);
+    final rentalFeeController =
+        TextEditingController(text: tenantData['rentalfee']?.toString() ?? '0');
 
     final formKey = GlobalKey<FormState>();
 
@@ -544,6 +629,33 @@ class _TenantPageState extends State<TenantPage> {
 
   Future<void> _deleteTenant(QueryDocumentSnapshot tenant) async {
     final unitnumber = tenant['unitnumber']?.toString() ?? '';
+    final tenantName =
+        '${tenant['firstname'] ?? ''} ${tenant['lastname'] ?? ''}';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Do you want to delete tenant "$tenantName"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return; // user canceled
 
     try {
       // Archive the tenant
@@ -558,7 +670,11 @@ class _TenantPageState extends State<TenantPage> {
       await _firestore.collection('tenant').doc(tenant.id).delete();
 
       // Mark unit as unoccupied
-      final unitQuery = await _firestore.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(unitnumber)).where('building#', isEqualTo: int.tryParse(widget.buildingnumber)).get();
+      final unitQuery = await _firestore
+          .collection('UnitNumber')
+          .where('unitNumber', isEqualTo: int.tryParse(unitnumber))
+          .where('building#', isEqualTo: int.tryParse(widget.buildingnumber))
+          .get();
 
       for (var unitDoc in unitQuery.docs) {
         await unitDoc.reference.update({'isOccupied': false});
@@ -608,7 +724,10 @@ class _TenantPageState extends State<TenantPage> {
             child: const Center(
               child: Text(
                 'Tenant Management',
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -627,7 +746,10 @@ class _TenantPageState extends State<TenantPage> {
                   children: [
                     // Unit Filter
                     StreamBuilder<QuerySnapshot>(
-                      stream: _firestore.collection('building').orderBy('building').snapshots(),
+                      stream: _firestore
+                          .collection('building')
+                          .orderBy('building')
+                          .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
                           return const Text('Error loading buildings');
@@ -667,30 +789,48 @@ class _TenantPageState extends State<TenantPage> {
                     const SizedBox(height: 16),
 
                     StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.parse(widget.buildingnumber)).where('isOccupied', isEqualTo: false).snapshots(),
-                      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                      stream: FirebaseFirestore.instance
+                          .collection('UnitNumber')
+                          .where('building#',
+                              isEqualTo: int.parse(widget.buildingnumber))
+                          .where('isOccupied', isEqualTo: false)
+                          .snapshots(),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasError) {
                           return const Text('Something went wrong');
                         }
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return const Text('No available units');
                         }
 
-                        final unitNumbers = snapshot.data!.docs.map((doc) => doc['unitNumber'].toString()).toList();
+                        final unitNumbers = snapshot.data!.docs
+                            .map((doc) => doc['unitNumber'].toString())
+                            .toList();
                         final hasAvailableUnits = unitNumbers.isNotEmpty;
 
                         return ElevatedButton.icon(
-                          onPressed: hasAvailableUnits ? () => _AssignTenantUserBuilding(int.parse(widget.buildingnumber)) : null,
+                          onPressed: hasAvailableUnits
+                              ? () => _AssignTenantUserBuilding(
+                                  int.parse(widget.buildingnumber))
+                              : null,
                           icon: const Icon(Icons.person_add, size: 20),
                           label: const Text('Add Tenant'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: hasAvailableUnits ? Colors.blue[600] : Colors.grey[400],
-                            foregroundColor: hasAvailableUnits ? Colors.white : Colors.grey[600],
+                            backgroundColor: hasAvailableUnits
+                                ? Colors.blue[600]
+                                : Colors.grey[400],
+                            foregroundColor: hasAvailableUnits
+                                ? Colors.white
+                                : Colors.grey[600],
                             elevation: hasAvailableUnits ? 2 : 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -707,7 +847,13 @@ class _TenantPageState extends State<TenantPage> {
           // Tenant List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: (_selectedUnitNumber == null || _selectedUnitNumber == 'All') ? _firestore.collection('tenant').snapshots() : _firestore.collection('tenant').where('buildingnumber', isEqualTo: _selectedUnitNumber).snapshots(),
+              stream: (_selectedUnitNumber == null ||
+                      _selectedUnitNumber == 'All')
+                  ? _firestore.collection('tenant').snapshots()
+                  : _firestore
+                      .collection('tenant')
+                      .where('buildingnumber', isEqualTo: _selectedUnitNumber)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -755,12 +901,16 @@ class _TenantPageState extends State<TenantPage> {
                       itemCount: tenants.length,
                       itemBuilder: (context, index) {
                         final tenant = tenants[index];
-                        final name = '${tenant['firstname']} ${tenant['lastname']}';
+                        final name =
+                            '${tenant['firstname']} ${tenant['lastname']}';
                         final unit = tenant['unitnumber'] ?? 'N/A';
                         final contact = tenant['contactnumber'] ?? 'N/A';
-                        final rent = NumberFormat.currency(symbol: '₱').format(tenant['rentalfee'] ?? 0);
-                        final tenantData = tenant.data() as Map<String, dynamic>;
-                        final hasProfileImage = tenantData['profile'] != null && tenantData['profile'].toString().isNotEmpty;
+                        final rent = NumberFormat.currency(symbol: '₱')
+                            .format(tenant['rentalfee'] ?? 0);
+                        final tenantData =
+                            tenant.data() as Map<String, dynamic>;
+                        final hasProfileImage = tenantData['profile'] != null &&
+                            tenantData['profile'].toString().isNotEmpty;
 
                         return Card(
                           elevation: 4,
@@ -781,10 +931,13 @@ class _TenantPageState extends State<TenantPage> {
                                               showDialog(
                                                 context: context,
                                                 builder: (_) => Dialog(
-                                                  backgroundColor: Colors.transparent,
+                                                  backgroundColor:
+                                                      Colors.transparent,
                                                   child: InteractiveViewer(
                                                     child: ClipRRect(
-                                                      borderRadius: BorderRadius.circular(12),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
                                                       child: Image.network(
                                                         tenantData['profile'],
                                                         fit: BoxFit.cover,
@@ -798,11 +951,21 @@ class _TenantPageState extends State<TenantPage> {
                                       child: CircleAvatar(
                                         radius: 32,
                                         backgroundColor: Colors.blueGrey[200],
-                                        backgroundImage: hasProfileImage ? NetworkImage(tenantData['profile']) : null,
+                                        backgroundImage: hasProfileImage
+                                            ? NetworkImage(
+                                                tenantData['profile'])
+                                            : null,
                                         child: hasProfileImage
                                             ? null
                                             : Text(
-                                                (tenantData['firstname']?.toString().isNotEmpty ?? false) ? tenantData['firstname'].toString()[0].toUpperCase() : '?',
+                                                (tenantData['firstname']
+                                                            ?.toString()
+                                                            .isNotEmpty ??
+                                                        false)
+                                                    ? tenantData['firstname']
+                                                        .toString()[0]
+                                                        .toUpperCase()
+                                                    : '?',
                                                 style: const TextStyle(
                                                   fontSize: 24,
                                                   color: Colors.white,
@@ -827,24 +990,35 @@ class _TenantPageState extends State<TenantPage> {
                                 // Information section
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _buildInfoRow(Icons.home, 'Unit $unit'),
                                       _buildInfoRow(Icons.phone, contact),
-                                      _buildInfoRow(Icons.attach_money, 'Rent: $rent'),
+                                      _buildInfoRow(
+                                          Icons.attach_money, 'Rent: $rent'),
                                     ],
                                   ),
                                 ),
 
                                 // Action buttons
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.message, size: 28, color: Colors.blue),
+                                      icon: const Icon(Icons.message,
+                                          size: 28, color: Colors.blue),
                                       tooltip: 'Send Message',
                                       onPressed: () {
-                                        Navigator.push(context, MaterialPageRoute(builder: (context) => messagePage(firstname: tenantData['firstname'], userid: '')));
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    messagePage(
+                                                        firstname: tenantData[
+                                                            'firstname'],
+                                                        userid: '')));
                                       },
                                     ),
                                     PopupMenuButton<String>(
@@ -853,65 +1027,112 @@ class _TenantPageState extends State<TenantPage> {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (context) => saleRecordingInfoPage(
+                                              builder: (context) =>
+                                                  saleRecordingInfoPage(
                                                 uid: tenant.id,
                                                 firstname: tenant['firstname'],
                                                 lastname: tenant['lastname'],
-                                                buildnumber: widget.buildingnumber,
-                                                unitnumber: tenant['unitnumber'],
+                                                buildnumber:
+                                                    widget.buildingnumber,
+                                                unitnumber:
+                                                    tenant['unitnumber'],
                                               ),
                                             ),
                                           );
-                                        } else if (value == 'View Sub-Account') {
+                                        } else if (value ==
+                                            'View Sub-Account') {
                                           showDialog(
                                             context: context,
                                             builder: (BuildContext context) {
                                               return AlertDialog(
-                                                title: const Text('Sub Accounts'),
+                                                title:
+                                                    const Text('Sub Accounts'),
                                                 content: SizedBox(
                                                   width: double.maxFinite,
                                                   child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
                                                       Padding(
-                                                        padding: const EdgeInsets.only(bottom: 8),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                bottom: 8),
                                                         child: Text(
                                                           'Tenant: ${tenant['firstname']} ${tenant['lastname']} | Building #: ${tenant['buildingnumber']} | Unit #: ${tenant['unitnumber']}',
-                                                          style: const TextStyle(
+                                                          style:
+                                                              const TextStyle(
                                                             fontSize: 14,
-                                                            fontWeight: FontWeight.w500,
+                                                            fontWeight:
+                                                                FontWeight.w500,
                                                           ),
                                                         ),
                                                       ),
                                                       SizedBox(
                                                         height: 250,
-                                                        child: StreamBuilder<QuerySnapshot>(
-                                                          stream: _firestore.collection('Sub-Tenant').where('mainAccountId', isEqualTo: tenant.id).snapshots(),
-                                                          builder: (context, snapshot) {
-                                                            if (snapshot.hasError) {
-                                                              return const Text('Error loading sub-accounts');
+                                                        child: StreamBuilder<
+                                                            QuerySnapshot>(
+                                                          stream: _firestore
+                                                              .collection(
+                                                                  'Sub-Tenant')
+                                                              .where(
+                                                                  'mainAccountId',
+                                                                  isEqualTo:
+                                                                      tenant.id)
+                                                              .snapshots(),
+                                                          builder: (context,
+                                                              snapshot) {
+                                                            if (snapshot
+                                                                .hasError) {
+                                                              return const Text(
+                                                                  'Error loading sub-accounts');
                                                             }
-                                                            if (!snapshot.hasData) {
-                                                              return const Center(child: CircularProgressIndicator());
+                                                            if (!snapshot
+                                                                .hasData) {
+                                                              return const Center(
+                                                                  child:
+                                                                      CircularProgressIndicator());
                                                             }
-                                                            if (snapshot.data!.docs.isEmpty) {
-                                                              return const Center(child: Text('No sub-accounts found'));
+                                                            if (snapshot.data!
+                                                                .docs.isEmpty) {
+                                                              return const Center(
+                                                                  child: Text(
+                                                                      'No sub-accounts found'));
                                                             }
 
-                                                            return ListView.builder(
-                                                              itemCount: snapshot.data!.docs.length,
-                                                              itemBuilder: (context, index) {
-                                                                final subAccount = snapshot.data!.docs[index];
+                                                            return ListView
+                                                                .builder(
+                                                              itemCount:
+                                                                  snapshot
+                                                                      .data!
+                                                                      .docs
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                      index) {
+                                                                final subAccount =
+                                                                    snapshot.data!
+                                                                            .docs[
+                                                                        index];
                                                                 return ListTile(
-                                                                  leading: GestureDetector(
+                                                                  leading:
+                                                                      GestureDetector(
                                                                     onTap: () {
                                                                       showDialog(
-                                                                        context: context,
-                                                                        builder: (_) => Dialog(
-                                                                          backgroundColor: Colors.transparent,
-                                                                          child: InteractiveViewer(
-                                                                            child: ClipRRect(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (_) =>
+                                                                                Dialog(
+                                                                          backgroundColor:
+                                                                              Colors.transparent,
+                                                                          child:
+                                                                              InteractiveViewer(
+                                                                            child:
+                                                                                ClipRRect(
                                                                               borderRadius: BorderRadius.circular(12),
                                                                               child: Image.network(
                                                                                 subAccount['profileImage'],
@@ -922,20 +1143,34 @@ class _TenantPageState extends State<TenantPage> {
                                                                         ),
                                                                       );
                                                                     },
-                                                                    child: CircleAvatar(
-                                                                      backgroundImage: NetworkImage(subAccount['profileImage']),
+                                                                    child:
+                                                                        CircleAvatar(
+                                                                      backgroundImage:
+                                                                          NetworkImage(
+                                                                              subAccount['profileImage']),
                                                                     ),
                                                                   ),
-                                                                  title: Text(subAccount['fullname'] ?? 'No name'),
-                                                                  subtitle: Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  title: Text(subAccount[
+                                                                          'fullname'] ??
+                                                                      'No name'),
+                                                                  subtitle:
+                                                                      Column(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
                                                                     children: [
-                                                                      Text('Username: ${subAccount['username']}'),
-                                                                      Text('Contact: ${subAccount['contact']}'),
-                                                                      Text('Email: ${subAccount['email']}'),
-                                                                      Text('Remarks: ${subAccount['remarks']}'),
-                                                                      Text('Building #: ${subAccount['buildingnumber']}'),
-                                                                      Text('Unit #: ${subAccount['unitnumber']}'),
+                                                                      Text(
+                                                                          'Username: ${subAccount['username']}'),
+                                                                      Text(
+                                                                          'Contact: ${subAccount['contact']}'),
+                                                                      Text(
+                                                                          'Email: ${subAccount['email']}'),
+                                                                      Text(
+                                                                          'Remarks: ${subAccount['remarks']}'),
+                                                                      Text(
+                                                                          'Building #: ${subAccount['buildingnumber']}'),
+                                                                      Text(
+                                                                          'Unit #: ${subAccount['unitnumber']}'),
                                                                     ],
                                                                   ),
                                                                 );
@@ -949,7 +1184,9 @@ class _TenantPageState extends State<TenantPage> {
                                                 ),
                                                 actions: [
                                                   TextButton(
-                                                    onPressed: () => Navigator.of(context).pop(),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
                                                     child: const Text('Close'),
                                                   ),
                                                 ],

@@ -16,6 +16,7 @@ import 'package:bogsandmila/salesrecord.dart';
 import 'package:bogsandmila/tenant.dart';
 import 'package:bogsandmila/vacancy.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:emailjs/emailjs.dart' as emailjs;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
@@ -56,21 +57,33 @@ class _DashboardPage extends State<DashboardPage> {
     final int currentMonth = now.month;
     final int currentYear = now.year;
 
-    final QuerySnapshot tenantSnapshot = await _firestore.collection('tenant').get();
+    final QuerySnapshot tenantSnapshot =
+        await _firestore.collection('tenant').get();
 
     for (final doc in tenantSnapshot.docs) {
       final String uid = doc.id;
       final int rentalCost = doc['rentalfee'];
       final String payerName = doc['firstname'];
-      final String? unitNumber = doc.data().toString().contains('unitnumber') ? doc['unitnumber'] : null;
-      final int dueDay = doc.data().toString().contains('due_day') ? doc['due_day'] : 30; // fallback to 30
+      final String? unitNumber = doc.data().toString().contains('unitnumber')
+          ? doc['unitnumber']
+          : null;
+      final int dueDay = doc.data().toString().contains('due_day')
+          ? doc['due_day']
+          : 30; // fallback to 30
 
       // Check if sales record already exists for this month/year/user
-      final QuerySnapshot existing = await _firestore.collection('sales_record').where('uid', isEqualTo: uid).where('due_month_number', isEqualTo: currentMonth).where('due_year', isEqualTo: currentYear).get();
+      final QuerySnapshot existing = await _firestore
+          .collection('sales_record')
+          .where('uid', isEqualTo: uid)
+          .where('due_month_number', isEqualTo: currentMonth)
+          .where('due_year', isEqualTo: currentYear)
+          .get();
 
       if (existing.docs.isEmpty) {
-        final String formattedDateTime = DateFormat("yyyy-MM-dd – HH:mm").format(now);
-        final String dueDateFormatted = "$dueDay/${currentMonth.toString().padLeft(2, '0')}/$currentYear";
+        final String formattedDateTime =
+            DateFormat("yyyy-MM-dd – HH:mm").format(now);
+        final String dueDateFormatted =
+            "$dueDay/${currentMonth.toString().padLeft(2, '0')}/$currentYear";
 
         await _firestore.collection('sales_record').add({
           'Amount': '', // blank until payment
@@ -96,7 +109,21 @@ class _DashboardPage extends State<DashboardPage> {
   }
 
   String _getMonthName(int monthNumber) {
-    const months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      '',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
     return months[monthNumber];
   }
 
@@ -125,25 +152,40 @@ class _DashboardPage extends State<DashboardPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 20),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         StreamBuilder<QuerySnapshot>(
-                            stream: _firestore.collection('notifications').where('userId', isEqualTo: 'userAdmin').snapshots(),
-                            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                            stream: _firestore
+                                .collection('notifications')
+                                .where('userId', isEqualTo: 'userAdmin')
+                                .snapshots(),
+                            builder: (context,
+                                AsyncSnapshot<QuerySnapshot> snapshot) {
                               if (snapshot.hasError) {
-                                const Center(child: Text('Failed to load notifications'));
+                                const Center(
+                                    child:
+                                        Text('Failed to load notifications'));
                               }
 
                               final notifData = snapshot.data!.docs;
-                              final unReadCount = notifData.where((doc) => doc['isRead'] == false).length;
+                              final unReadCount = notifData
+                                  .where((doc) => doc['isRead'] == false)
+                                  .length;
                               return Row(
                                 children: [
                                   IconButton(
-                                    icon: Icon(unReadCount != 0 ? Icons.notification_important_outlined : Icons.notifications),
+                                    icon: Icon(unReadCount != 0
+                                        ? Icons.notification_important_outlined
+                                        : Icons.notifications),
                                     onPressed: () {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => notificationPage()));
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  notificationPage()));
                                     },
                                   ),
                                   Text('Notifications'),
@@ -158,21 +200,26 @@ class _DashboardPage extends State<DashboardPage> {
                               context: context,
                               builder: (BuildContext context) {
                                 return AlertDialog(
-                                  title: const Center(child: Text('Confirmation')),
-                                  content: const Text('Are You Sure Want to log out?'),
+                                  title:
+                                      const Center(child: Text('Confirmation')),
+                                  content: const Text(
+                                      'Are You Sure Want to log out?'),
                                   actions: [
                                     ElevatedButton(
                                       onPressed: () {
                                         Navigator.pushReplacement(
                                           context,
-                                          MaterialPageRoute(builder: (context) => const LoginPage()),
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const LoginPage()),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
                                       child: const Text('Confirm'),
@@ -185,7 +232,8 @@ class _DashboardPage extends State<DashboardPage> {
                                         backgroundColor: Colors.red,
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
                                       child: const Text('Cancel'),
@@ -208,8 +256,11 @@ class _DashboardPage extends State<DashboardPage> {
                   ),
                   LogoPage(),
                   const SizedBox(height: 30),
-                  FutureBuilder<DocumentSnapshot>(
-                    future: _firestore.collection('Super-Admin').doc(widget.uid).get(),
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: _firestore
+                        .collection('Super-Admin')
+                        .doc(widget.uid)
+                        .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Container(
@@ -220,34 +271,44 @@ class _DashboardPage extends State<DashboardPage> {
                               SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                               SizedBox(width: 12),
                               Text(
-                                widget.type == 'Admin' ? 'Admin' : 'Super Admin',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                                widget.type == 'Admin'
+                                    ? 'Admin'
+                                    : 'Super Admin',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 23),
                               ),
                             ],
                           ),
                         );
                       }
 
-                      if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                      if (snapshot.hasError ||
+                          !snapshot.hasData ||
+                          !snapshot.data!.exists) {
                         return Container(
                           alignment: Alignment.center,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                widget.type == 'Admin' ? 'Admin' : 'Super Admin',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 23),
+                                widget.type == 'Admin'
+                                    ? 'Admin'
+                                    : 'Super Admin',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 23),
                               ),
                             ],
                           ),
                         );
                       }
 
-                      final userData = snapshot.data!.data() as Map<String, dynamic>;
+                      final userData =
+                          snapshot.data!.data() as Map<String, dynamic>;
 
                       return UserProfileWidget(
                         userType: widget.type,
@@ -266,7 +327,8 @@ class _DashboardPage extends State<DashboardPage> {
                           if (widget.type == 'Super Admin')
                             if (widget.type == 'Super Admin')
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
                                 children: [
                                   // GestureDetector(
                                   //   onTap: _launchURL,
@@ -302,7 +364,8 @@ class _DashboardPage extends State<DashboardPage> {
                                       Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                              builder: (context) => buildingUnits(
+                                              builder: (context) =>
+                                                  buildingUnits(
                                                     userid: widget.uid,
                                                   )));
                                     },
@@ -315,31 +378,40 @@ class _DashboardPage extends State<DashboardPage> {
                                         borderRadius: BorderRadius.circular(5),
                                       ),
                                       child: const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Image(
-                                            image: AssetImage('assets/updatedatabase.png'),
+                                            image: AssetImage(
+                                                'assets/updatedatabase.png'),
                                             fit: BoxFit.cover,
                                           ),
                                           Text(
                                             'Update Building',
-                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 17),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  _cardContainer(2, "Message", "assets/message.png"),
-                                  _cardContainer(6, "Manage Admin User", "assets/manageuser.png"),
+                                  _cardContainer(
+                                      2, "Message", "assets/message.png"),
+                                  _cardContainer(6, "Manage Admin User",
+                                      "assets/manageuser.png"),
                                 ],
                               ),
                           if (widget.type == 'Admin')
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _cardContainer(1, "Announce", "assets/announce.png"),
-                                _cardContainer(2, "Message", "assets/message.png"),
-                                _cardContainer(3, "Request", "assets/request.png"),
+                                _cardContainer(
+                                    1, "Announce", "assets/announce.png"),
+                                _cardContainer(
+                                    2, "Message", "assets/message.png"),
+                                _cardContainer(
+                                    3, "Request", "assets/request.png"),
                               ],
                             ),
                           const SizedBox(
@@ -350,16 +422,23 @@ class _DashboardPage extends State<DashboardPage> {
                             children: [
                               // _cardContainer(
                               //     5, "Vacancy", "assets/vacancy.png"),
-                              if (widget.type == 'Super Admin') _cardContainer(1, "Announce", "assets/announce.png"),
-                              if (widget.type == 'Super Admin') _cardContainer(3, "Request", "assets/request.png"),
-                              if (widget.type == 'Admin') _cardContainer(8, "Archive", "assets/archive.png"),
+                              if (widget.type == 'Super Admin')
+                                _cardContainer(
+                                    1, "Announce", "assets/announce.png"),
+                              if (widget.type == 'Super Admin')
+                                _cardContainer(
+                                    3, "Request", "assets/request.png"),
+                              if (widget.type == 'Admin')
+                                _cardContainer(
+                                    8, "Archive", "assets/archive.png"),
                               if (widget.type == 'Admin')
                                 GestureDetector(
                                   onTap: () {
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) => BuildingUnitsAdminDesktop(
+                                            builder: (context) =>
+                                                BuildingUnitsAdminDesktop(
                                                   userId: widget.uid,
                                                 )));
                                   },
@@ -372,15 +451,19 @@ class _DashboardPage extends State<DashboardPage> {
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                     child: const Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Image(
-                                          image: AssetImage('assets/updatedatabase.png'),
+                                          image: AssetImage(
+                                              'assets/updatedatabase.png'),
                                           fit: BoxFit.cover,
                                         ),
                                         Text(
                                           'Building Units',
-                                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 17),
                                         ),
                                       ],
                                     ),
@@ -418,7 +501,8 @@ class _DashboardPage extends State<DashboardPage> {
               ),
               Text(
                 label,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
               ),
             ],
           ),
@@ -485,7 +569,8 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -534,8 +619,10 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                     children: [
                       GestureDetector(
                         onTap: () async {
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
-                          if (result != null && result.files.single.path != null) {
+                          FilePickerResult? result = await FilePicker.platform
+                              .pickFiles(type: FileType.image);
+                          if (result != null &&
+                              result.files.single.path != null) {
                             File file = File(result.files.single.path!);
                             String fileName = path.basename(file.path);
 
@@ -544,20 +631,29 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                                 _isLoading = true;
                               });
 
-                              final ref = FirebaseStorage.instance.ref().child('profile_images/$fileName');
+                              final ref = FirebaseStorage.instance
+                                  .ref()
+                                  .child('profile_images/$fileName');
                               await ref.putFile(file);
                               final downloadUrl = await ref.getDownloadURL();
 
-                              await _firestore.collection('Super-Admin').doc(widget.documentId).update({
+                              await _firestore
+                                  .collection('Super-Admin')
+                                  .doc(widget.documentId)
+                                  .update({
                                 'profile': downloadUrl,
                               });
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Profile image updated!'), backgroundColor: Colors.green),
+                                SnackBar(
+                                    content: Text('Profile image updated!'),
+                                    backgroundColor: Colors.green),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to upload image: $e'), backgroundColor: Colors.red),
+                                SnackBar(
+                                    content: Text('Failed to upload image: $e'),
+                                    backgroundColor: Colors.red),
                               );
                             } finally {
                               setState(() {
@@ -580,27 +676,34 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                                     widget.profileImageUrl,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
-                                      return Icon(Icons.person, size: 40, color: Colors.grey[600]);
+                                      return Icon(Icons.person,
+                                          size: 40, color: Colors.grey[600]);
                                     },
                                   ),
                                 )
-                              : Icon(Icons.person, size: 40, color: Colors.grey[600]),
+                              : Icon(Icons.person,
+                                  size: 40, color: Colors.grey[600]),
                         ),
                       ),
                       SizedBox(height: 8),
-                      Text('Tap to change picture', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      Text('Tap to change picture',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600])),
                       SizedBox(height: 24),
                       TextFormField(
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Please enter an email';
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          if (value == null || value.isEmpty)
+                            return 'Please enter an email';
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
                           return null;
@@ -613,19 +716,24 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                           labelText: 'New Password',
                           prefixIcon: Icon(Icons.lock),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                            icon: Icon(_obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off),
                             onPressed: () {
                               setState(() {
                                 _obscurePassword = !_obscurePassword;
                               });
                             },
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         obscureText: _obscurePassword,
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Please enter a password';
-                          if (value.length < 6) return 'Password must be at least 6 characters';
+                          if (value == null || value.isEmpty)
+                            return 'Please enter a password';
+                          if (value.length < 6)
+                            return 'Password must be at least 6 characters';
                           return null;
                         },
                       ),
@@ -636,19 +744,25 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                           labelText: 'Confirm Password',
                           prefixIcon: Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                            icon: Icon(_obscureConfirmPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off),
                             onPressed: () {
                               setState(() {
-                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
                               });
                             },
                           ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         obscureText: _obscureConfirmPassword,
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Please confirm your password';
-                          if (value != _passwordController.text) return 'Passwords do not match';
+                          if (value == null || value.isEmpty)
+                            return 'Please confirm your password';
+                          if (value != _passwordController.text)
+                            return 'Passwords do not match';
                           return null;
                         },
                       ),
@@ -664,8 +778,14 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                   child: Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : () => _updateUserSettings(setState),
-                  child: _isLoading ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text('Save Changes'),
+                  onPressed:
+                      _isLoading ? null : () => _updateUserSettings(setState),
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text('Save Changes'),
                 ),
               ],
             );
@@ -682,26 +802,67 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
       _isLoading = true;
     });
 
+    final updatedEmail = _emailController.text.trim();
+
     try {
+      // 1. Update Firestore credentials
       await _firestore.collection('Super-Admin').doc(widget.documentId).update({
-        'email': _emailController.text.trim(),
+        'email': updatedEmail,
         'password': _passwordController.text,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Settings updated successfully!'), backgroundColor: Colors.green),
-      );
+      // 2. Send notification email
+      await _sendPasswordChangeEmail(updatedEmail);
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Settings updated successfully!'),
+            backgroundColor: Colors.green),
+      );
+      await emailjs.send(
+        'service_ralmb2g', // Use your own service ID
+        'template_rahmraj', // Use a dedicated template like 'template_passwordchange'
+        {
+          'email': _emailController.text.trim(),
+          'name': 'Admin', // Or the admin's name if you have it
+          'password': _passwordController.text.trim(),
+        },
+        const emailjs.Options(
+          publicKey: 'VyqEOTlbKR9yzkJ2H',
+          privateKey: '33HeQw8TVZFY62e2b6WjK',
+        ),
+      );
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating settings: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error updating settings: $e'),
+            backgroundColor: Colors.red),
       );
     } finally {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _sendPasswordChangeEmail(String email) async {
+    try {
+      final url = Uri.parse(
+          "https://<YOUR_CLOUD_FUNCTION_URL>/sendPasswordChangeEmail");
+      final response = await HttpClient().postUrl(url)
+        ..headers.set('Content-Type', 'application/json')
+        ..write('{"email": "$email"}');
+
+      final result = await response.close();
+      if (result.statusCode == 200) {
+        print('Password change email sent');
+      } else {
+        print('Failed to send email: ${result.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending email: $e');
     }
   }
 
@@ -711,7 +872,8 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (widget.userType == 'Super Admin') // Only show avatar for Super Admin
+          if (widget.userType ==
+              'Super Admin') // Only show avatar for Super Admin
             GestureDetector(
               onTap: _showUserSettingsDialog,
               child: Container(
@@ -735,7 +897,8 @@ class _UserProfileWidgetState extends State<UserProfileWidget> {
                         child: Image.network(
                           widget.profileImageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(Icons.person, size: 30, color: Colors.blue),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Icon(Icons.person, size: 30, color: Colors.blue),
                         ),
                       )
                     : Icon(Icons.person, size: 30, color: Colors.blue),

@@ -26,13 +26,19 @@ class _ArchivePageState extends State<ArchivePage> {
 
   // Helper method to filter buildings with available units
   Future<List<DocumentSnapshot>> _getBuildingsWithAvailableUnits() async {
-    final buildingsSnapshot = await FirebaseFirestore.instance.collection('building').get();
+    final buildingsSnapshot =
+        await FirebaseFirestore.instance.collection('building').get();
 
     List<DocumentSnapshot> availableBuildings = [];
 
     for (var building in buildingsSnapshot.docs) {
       final buildingNumber = building['building'].toString();
-      final unitsQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.tryParse(buildingNumber)).where('isOccupied', isEqualTo: false).limit(1).get();
+      final unitsQuery = await FirebaseFirestore.instance
+          .collection('UnitNumber')
+          .where('building#', isEqualTo: int.tryParse(buildingNumber))
+          .where('isOccupied', isEqualTo: false)
+          .limit(1)
+          .get();
 
       if (unitsQuery.docs.isNotEmpty) {
         availableBuildings.add(building);
@@ -42,12 +48,14 @@ class _ArchivePageState extends State<ArchivePage> {
     return availableBuildings;
   }
 
-  Future<void> _showEditAndUnarchiveDialog(String tenantId, Map<String, dynamic> tenantData) async {
+  Future<void> _showEditAndUnarchiveDialog(
+      String tenantId, Map<String, dynamic> tenantData) async {
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     final TextEditingController _firstNameController = TextEditingController();
     final TextEditingController _lastNameController = TextEditingController();
     final TextEditingController _middleNameController = TextEditingController();
-    final TextEditingController _contactNumberController = TextEditingController();
+    final TextEditingController _contactNumberController =
+        TextEditingController();
     final TextEditingController _rentalFeeController = TextEditingController();
     final TextEditingController _usernameController = TextEditingController();
     final TextEditingController _emailController = TextEditingController();
@@ -243,7 +251,8 @@ class _ArchivePageState extends State<ArchivePage> {
                             child: FutureBuilder<List<DocumentSnapshot>>(
                               future: _getBuildingsWithAvailableUnits(),
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   return const CircularProgressIndicator();
                                 }
                                 if (snapshot.hasError) {
@@ -253,7 +262,8 @@ class _ArchivePageState extends State<ArchivePage> {
                                 final availableBuildings = snapshot.data ?? [];
 
                                 if (availableBuildings.isEmpty) {
-                                  return const Text('No buildings with available units');
+                                  return const Text(
+                                      'No buildings with available units');
                                 }
 
                                 return DropdownButtonFormField<String>(
@@ -269,9 +279,12 @@ class _ArchivePageState extends State<ArchivePage> {
                                       vertical: 16,
                                     ),
                                   ),
-                                  items: availableBuildings.map((DocumentSnapshot document) {
-                                    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                                    String buildingNumber = data['building'].toString();
+                                  items: availableBuildings
+                                      .map((DocumentSnapshot document) {
+                                    Map<String, dynamic> data =
+                                        document.data() as Map<String, dynamic>;
+                                    String buildingNumber =
+                                        data['building'].toString();
                                     return DropdownMenuItem<String>(
                                       value: buildingNumber,
                                       child: Text(buildingNumber),
@@ -296,12 +309,22 @@ class _ArchivePageState extends State<ArchivePage> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: StreamBuilder<QuerySnapshot>(
-                              stream: selectedBuilding != null ? FirebaseFirestore.instance.collection('UnitNumber').where('building#', isEqualTo: int.tryParse(selectedBuilding!)).where('isOccupied', isEqualTo: false).snapshots() : const Stream.empty(),
-                              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                              stream: selectedBuilding != null
+                                  ? FirebaseFirestore.instance
+                                      .collection('UnitNumber')
+                                      .where('building#',
+                                          isEqualTo:
+                                              int.tryParse(selectedBuilding!))
+                                      .where('isOccupied', isEqualTo: false)
+                                      .snapshots()
+                                  : const Stream.empty(),
+                              builder: (BuildContext context,
+                                  AsyncSnapshot<QuerySnapshot> snapshot) {
                                 if (snapshot.hasError) {
                                   return const Text('Error loading units');
                                 }
-                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
                                   return const CircularProgressIndicator();
                                 }
 
@@ -309,11 +332,13 @@ class _ArchivePageState extends State<ArchivePage> {
                                   return DropdownButtonFormField<String>(
                                     decoration: InputDecoration(
                                       labelText: 'Unit Number',
-                                      prefixIcon: const Icon(Icons.door_front_door),
+                                      prefixIcon:
+                                          const Icon(Icons.door_front_door),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      contentPadding: const EdgeInsets.symmetric(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 16,
                                       ),
@@ -326,11 +351,14 @@ class _ArchivePageState extends State<ArchivePage> {
 
                                 final units = snapshot.data?.docs ?? [];
                                 final Set<String> uniqueUnitNumbers = {};
-                                final List<DropdownMenuItem<String>> uniqueUnitItems = [];
+                                final List<DropdownMenuItem<String>>
+                                    uniqueUnitItems = [];
 
                                 for (DocumentSnapshot document in units) {
-                                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                                  String unitNumber = data['unitNumber'].toString();
+                                  Map<String, dynamic> data =
+                                      document.data() as Map<String, dynamic>;
+                                  String unitNumber =
+                                      data['unitNumber'].toString();
 
                                   if (!uniqueUnitNumbers.contains(unitNumber)) {
                                     uniqueUnitNumbers.add(unitNumber);
@@ -352,13 +380,18 @@ class _ArchivePageState extends State<ArchivePage> {
                                   return a.value!.compareTo(b.value!);
                                 });
 
-                                bool isValidUnitSelection = selectedUnit != null && uniqueUnitNumbers.contains(selectedUnit);
+                                bool isValidUnitSelection = selectedUnit !=
+                                        null &&
+                                    uniqueUnitNumbers.contains(selectedUnit);
 
                                 return DropdownButtonFormField<String>(
-                                  value: isValidUnitSelection ? selectedUnit : null,
+                                  value: isValidUnitSelection
+                                      ? selectedUnit
+                                      : null,
                                   decoration: InputDecoration(
                                     labelText: 'Unit Number',
-                                    prefixIcon: const Icon(Icons.door_front_door),
+                                    prefixIcon:
+                                        const Icon(Icons.door_front_door),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -485,22 +518,41 @@ class _ArchivePageState extends State<ArchivePage> {
                           'middlename': _middleNameController.text.trim(),
                           'contactnumber': _contactNumberController.text.trim(),
                           'buildingnumber': selectedBuilding ?? '0',
-                          'password': _firstNameController.text + _lastNameController.text + selectedUnit.toString() + selectedBuilding.toString(),
+                          'password': _firstNameController.text +
+                              _lastNameController.text +
+                              selectedUnit.toString() +
+                              selectedBuilding.toString(),
                           'unitnumber': selectedUnit ?? '0',
-                          'rentalfee': int.tryParse(_rentalFeeController.text) ?? 0,
+                          'rentalfee':
+                              int.tryParse(_rentalFeeController.text) ?? 0,
                           'username': _usernameController.text.trim(),
                           'email': _emailController.text,
                           'profile': profile,
                         };
 
-                        await FirebaseFirestore.instance.collection('tenant').doc(tenantId).set(updatedTenantData);
+                        await FirebaseFirestore.instance
+                            .collection('tenant')
+                            .doc(tenantId)
+                            .set(updatedTenantData);
 
-                        await FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
+                        await FirebaseFirestore.instance
+                            .collection('Archive')
+                            .doc(tenantId)
+                            .delete();
 
-                        final unitQuery = await FirebaseFirestore.instance.collection('UnitNumber').where('unitNumber', isEqualTo: int.tryParse(selectedUnit.toString())).where('building#', isEqualTo: int.tryParse(selectedBuilding.toString())).get();
+                        final unitQuery = await FirebaseFirestore.instance
+                            .collection('UnitNumber')
+                            .where('unitNumber',
+                                isEqualTo:
+                                    int.tryParse(selectedUnit.toString()))
+                            .where('building#',
+                                isEqualTo:
+                                    int.tryParse(selectedBuilding.toString()))
+                            .get();
 
                         if (unitQuery.docs.isNotEmpty) {
-                          await unitQuery.docs.first.reference.update({'isOccupied': true});
+                          await unitQuery.docs.first.reference
+                              .update({'isOccupied': true});
                         }
 
                         if (mounted) {
@@ -542,13 +594,15 @@ class _ArchivePageState extends State<ArchivePage> {
     );
   }
 
-  Future<void> _showDeleteConfirmation(String tenantId, String tenantName) async {
+  Future<void> _showDeleteConfirmation(
+      String tenantId, String tenantName) async {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Permanently Delete Tenant'),
-          content: Text('Are you sure you want to permanently delete $tenantName? This action cannot be undone.'),
+          content: Text(
+              'Are you sure you want to permanently delete $tenantName? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -572,7 +626,10 @@ class _ArchivePageState extends State<ArchivePage> {
 
   Future<void> _deleteTenant(String tenantId) async {
     try {
-      await FirebaseFirestore.instance.collection('Archive').doc(tenantId).delete();
+      await FirebaseFirestore.instance
+          .collection('Archive')
+          .doc(tenantId)
+          .delete();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -678,10 +735,13 @@ class _ArchivePageState extends State<ArchivePage> {
                 // Main content
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance.collection('Archive').snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('Archive')
+                        .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
-                        return const Center(child: Text('Something went wrong'));
+                        return const Center(
+                            child: Text('Something went wrong'));
                       }
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
@@ -689,7 +749,9 @@ class _ArchivePageState extends State<ArchivePage> {
 
                       final data = snapshot.data!.docs;
                       final startIndex = _currentPage * _rowsPerPage;
-                      final endIndex = (startIndex + _rowsPerPage < data.length) ? startIndex + _rowsPerPage : data.length;
+                      final endIndex = (startIndex + _rowsPerPage < data.length)
+                          ? startIndex + _rowsPerPage
+                          : data.length;
 
                       if (data.isEmpty) {
                         return const Center(
@@ -719,13 +781,17 @@ class _ArchivePageState extends State<ArchivePage> {
                                   endIndex - startIndex,
                                   (index) {
                                     final doc = data[startIndex + index];
-                                    final profile = doc['profile'] ?? '';
+                                    final profile = (doc.data() as Map<String,
+                                            dynamic>)['profile'] ??
+                                        '';
                                     final firstname = doc['firstname'] ?? '';
                                     final email = doc['email'] ?? '';
                                     final lastname = doc['lastname'] ?? '';
-                                    final buildingnumber = doc['buildingnumber'] ?? '';
+                                    final buildingnumber =
+                                        doc['buildingnumber'] ?? '';
                                     final unitnumber = doc['unitnumber'] ?? '';
-                                    final contactnumber = doc['contactnumber'] ?? '';
+                                    final contactnumber =
+                                        doc['contactnumber'] ?? '';
                                     final tenantId = doc.id;
 
                                     return DataRow(
@@ -744,21 +810,27 @@ class _ArchivePageState extends State<ArchivePage> {
                                           DropdownButton<String>(
                                             value: null,
                                             hint: const Text('Actions'),
-                                            icon: const FaIcon(FontAwesomeIcons.ellipsisVertical),
+                                            icon: const FaIcon(FontAwesomeIcons
+                                                .ellipsisVertical),
                                             onChanged: (String? newValue) {
-                                              if (newValue == 'Edit and Un-archive') {
+                                              if (newValue ==
+                                                  'Edit and Un-archive') {
                                                 _showEditAndUnarchiveDialog(
                                                   tenantId,
-                                                  doc.data() as Map<String, dynamic>,
+                                                  doc.data()
+                                                      as Map<String, dynamic>,
                                                 );
-                                              } else if (newValue == 'Delete Permanently') {
+                                              } else if (newValue ==
+                                                  'Delete Permanently') {
                                                 _showDeleteConfirmation(
                                                   tenantId,
                                                   '$firstname $lastname',
                                                 );
                                               }
                                             },
-                                            items: dropdownItems.map<DropdownMenuItem<String>>((String value) {
+                                            items: dropdownItems
+                                                .map<DropdownMenuItem<String>>(
+                                                    (String value) {
                                               return DropdownMenuItem<String>(
                                                 value: value,
                                                 child: Text(value),
@@ -777,7 +849,8 @@ class _ArchivePageState extends State<ArchivePage> {
                           // Pagination controls
                           if (data.length > _rowsPerPage)
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8.0),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: List.generate(
@@ -791,8 +864,12 @@ class _ArchivePageState extends State<ArchivePage> {
                                         });
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: _currentPage == index ? const Color(0xdd1E1E1E) : Colors.white,
-                                        foregroundColor: _currentPage == index ? Colors.white : const Color(0xdd1E1E1E),
+                                        backgroundColor: _currentPage == index
+                                            ? const Color(0xdd1E1E1E)
+                                            : Colors.white,
+                                        foregroundColor: _currentPage == index
+                                            ? Colors.white
+                                            : const Color(0xdd1E1E1E),
                                       ),
                                       child: Text((index + 1).toString()),
                                     ),
@@ -830,7 +907,8 @@ class _ArchivePageState extends State<ArchivePage> {
     );
   }
 
-  Widget _buildProfileWidget(String? profileUrl, String firstName, String lastName) {
+  Widget _buildProfileWidget(
+      String? profileUrl, String firstName, String lastName) {
     return GestureDetector(
       onTap: () {
         if (profileUrl != null && profileUrl.isNotEmpty) {
